@@ -10,10 +10,13 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+coverage.txt
+
+# Binary
 pbgopy
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
-# Editor
+# Editor settings
 .idea
