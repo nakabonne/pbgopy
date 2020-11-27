@@ -11,11 +11,13 @@ import (
 
 type copyRunner struct {
 	stdout io.Writer
+	stderr io.Writer
 }
 
-func NewCopyCommand(stdout io.Writer) *cobra.Command {
+func NewCopyCommand(stdout, stderr io.Writer) *cobra.Command {
 	r := &copyRunner{
 		stdout: stdout,
+		stderr: stderr,
 	}
 	cmd := &cobra.Command{
 		Use:     "copy",

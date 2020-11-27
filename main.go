@@ -37,8 +37,8 @@ func (a *app) addCommands(cmds ...*cobra.Command) {
 func main() {
 	a := newApp("pbgopy", "Copy and paste between devices", os.Stdout, os.Stderr)
 	a.addCommands(
-		commands.NewCopyCommand(a.stdout),
-		commands.NewServeCommand(a.stdout),
+		commands.NewCopyCommand(a.stdout, a.stderr),
+		commands.NewServeCommand(a.stdout, a.stderr),
 	)
 
 	if err := a.rootCmd.Execute(); err != nil {
