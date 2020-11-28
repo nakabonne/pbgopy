@@ -40,6 +40,7 @@ func main() {
 		commands.NewCopyCommand(a.stdout, a.stderr),
 		commands.NewPasteCommand(a.stdout, a.stderr),
 		commands.NewServeCommand(a.stdout, a.stderr),
+		commands.NewVersionCommand(a.stderr),
 	)
 
 	if err := a.rootCmd.Execute(); err != nil {
