@@ -7,13 +7,15 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/spf13/cobra"
 )
 
 type copyRunner struct {
-	stdout io.Writer
-	stderr io.Writer
+	timeout time.Duration
+	stdout  io.Writer
+	stderr  io.Writer
 }
 
 func NewCopyCommand(stdout, stderr io.Writer) *cobra.Command {
@@ -22,32 +24,35 @@ func NewCopyCommand(stdout, stderr io.Writer) *cobra.Command {
 		stderr: stderr,
 	}
 	cmd := &cobra.Command{
-		Use:     "copy",
-		Short:   "Copy from stdin",
-		Example: "echo hello | pbgopy copy",
-		RunE:    r.run,
+		Use:   "copy",
+		Short: "Copy from stdin",
+		Example: `  export PBGOPY_SERVER=http://192.168.11.5:9090
+  echo hello | pbgopy copy`,
+		RunE: r.run,
 	}
-
+	cmd.Flags().DurationVar(&r.timeout, "timeout", 5*time.Second, "Time limit for requests")
 	return cmd
 }
 
 func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 	address := os.Getenv(pbgopyServerEnv)
 	if address == "" {
-		fmt.Errorf("put the pbgopy server's address into %s environment variable", pbgopyServerEnv)
+		return fmt.Errorf("put the pbgopy server's address into %s environment variable", pbgopyServerEnv)
 	}
 	data, err := ioutil.ReadAll(os.Stdin)
 	if err != nil {
 		return fmt.Errorf("failed to read from STDIN: %w", err)
 	}
 
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: r.timeout,
+	}
 	req, err := http.NewRequest(http.MethodPut, address, bytes.NewBuffer(data))
 	if err != nil {
 		return fmt.Errorf("failed to make request: %w", err)
 	}
 	if _, err := client.Do(req); err != nil {
-		return fmt.Errorf("failed to send request: %w", err)
+		return fmt.Errorf("failed to issue request: %w", err)
 	}
 	return nil
 }
