@@ -1,9 +1,11 @@
 package commands
 
 import (
-	"bufio"
+	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"net/http"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -30,16 +32,22 @@ func NewCopyCommand(stdout, stderr io.Writer) *cobra.Command {
 }
 
 func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
-	contents := make([]rune, 0)
-	reader := bufio.NewReader(os.Stdin)
-	for {
-		input, _, err := reader.ReadRune()
-		if err != nil && err == io.EOF {
-			break
-		}
-		contents = append(contents, input)
+	address := os.Getenv(pbgopyServerEnv)
+	if address == "" {
+		fmt.Errorf("put the pbgopy server's address into %s environment variable", pbgopyServerEnv)
 	}
-	// TODO: POST
-	fmt.Fprintln(r.stdout, string(contents))
+	data, err := ioutil.ReadAll(os.Stdin)
+	if err != nil {
+		return fmt.Errorf("failed to read from STDIN: %w", err)
+	}
+
+	client := &http.Client{}
+	req, err := http.NewRequest(http.MethodPut, address, bytes.NewBuffer(data))
+	if err != nil {
+		return fmt.Errorf("failed to make request: %w", err)
+	}
+	if _, err := client.Do(req); err != nil {
+		return fmt.Errorf("failed to send request: %w", err)
+	}
 	return nil
 }
