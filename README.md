@@ -1,11 +1,14 @@
 # pbgopy
+[![Release](https://img.shields.io/github/release/nakabonne/pbgopy.svg?color=orange)](https://github.com/nakabonne/pbgopy/releases/latest)
+[![go.dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/mod/github.com/nakabonne/pbgopy?tab=packages)
+
 `pbgopy` acts like [pbcopy/pbpaste](https://www.unix.com/man-page/osx/1/pbcopy/) but for multiple devices. It lets you share data across devices like you copy and paste.
 
 ## Installation
 Binary releases are available through [here](https://github.com/nakabonne/pbgopy/releases).
 
 ## Usage
-First up, you start the pbgopy server, which acts as a shared clipboard for devices. It listens on port 9090 by default.
+First up, you start the pbgopy server, which works as a shared clipboard for devices. It listens on port 9090 by default.
 
 ```bash
 pbgopy serve
@@ -33,17 +36,16 @@ pbgopy serve --ttl 10m
 ```
 
 ### End-to-end encryption
-This tool aims to share data quickly, even if it's done in insecure communication, hence it doesn't come with the ability to communicate securely.
-If you want end-to-end encryption, work with external tools. For instance, with openssl:
+`pbgopy` comes with an ability to encrypt/decrypt with a common key, hence allows you to perform end-to-end encryption without working with external tools.
 
 ```bash
-echo hello | openssl aes-256-cbc -e | pbgopy copy
+pbgopy copy -k 32-byte-or-less-string <secret.txt
 ```
 
-Then decrypt the pasted one:
+Then decrypt with the same key:
 
 ```bash
-pbgopy paste | openssl aes-256-cbc -d
+pbgopy paste -k 32-byte-or-less-string
 ```
 
 ## Inspired By
