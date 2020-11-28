@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -18,8 +18,6 @@ import (
 const (
 	defaultPort = 9090
 	defaultTTL  = time.Hour * 24
-
-	cacheKey = "clipboard"
 )
 
 type serveRunner struct {
@@ -32,6 +30,7 @@ type serveRunner struct {
 }
 
 func NewServeCommand(stdout, stderr io.Writer) *cobra.Command {
+	log.SetOutput(stdout)
 	r := &serveRunner{
 		stdout: stdout,
 		stderr: stderr,
@@ -66,24 +65,34 @@ func (r *serveRunner) run(_ *cobra.Command, _ []string) error {
 	mux.HandleFunc("/", r.handle)
 
 	defer func() {
-		fmt.Fprintf(r.stderr, "Start gracefully shutting down the server\n")
+		log.Println("Start gracefully shutting down the server")
 		if err := server.Shutdown(ctx); err != nil {
-			fmt.Fprintf(r.stderr, "Failed to gracefully shut down the server: %v\n", err)
+			log.Printf("Failed to gracefully shut down the server: %v\n", err)
 		}
 	}()
 
-	fmt.Fprintf(r.stderr, "Start listening on %d\n", r.port)
+	log.Printf("Start listening on %d\n", r.port)
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		fmt.Fprintf(r.stderr, "Failed to start the server: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to start the server: %w", err)
 	}
 	return nil
 }
 
 func (r *serveRunner) handle(w http.ResponseWriter, req *http.Request) {
+	const cacheKey = "key"
+
 	switch req.Method {
 	case http.MethodGet:
-		// TODO: handle get
+		data, err := r.cache.Get(cacheKey)
+		if err != nil {
+			http.Error(w, "Failed to get data from cache", http.StatusInternalServerError)
+			return
+		}
+		if d, ok := data.([]byte); ok {
+			w.Write(d)
+			return
+		}
+		http.Error(w, fmt.Sprintf("The cached data is unknown type: %T", data), http.StatusInternalServerError)
 	case http.MethodPut:
 		body, err := ioutil.ReadAll(req.Body)
 		if err != nil {
