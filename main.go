@@ -38,6 +38,7 @@ func main() {
 	a := newApp("pbgopy", "Copy and paste between devices", os.Stdout, os.Stderr)
 	a.addCommands(
 		commands.NewCopyCommand(a.stdout, a.stderr),
+		commands.NewPasteCommand(a.stdout, a.stderr),
 		commands.NewServeCommand(a.stdout, a.stderr),
 	)
 
