@@ -18,14 +18,14 @@ brew install nakabonne/pbgopy/pbgopy
 #### RHEL/CentOS
 
 ```
-rpm -ivh https://github.com/nakabonne/pbgopy/releases/download/v0.1.0/pbgopy_0.1.0_linux_amd64.rpm
+rpm -ivh https://github.com/nakabonne/pbgopy/releases/download/v0.1.1/pbgopy_0.1.1_linux_amd64.rpm
 ```
 
 #### Debian/Ubuntu
 
 ```
-wget https://github.com/nakabonne/pbgopy/releases/download/v0.1.0/pbgopy_0.1.0_linux_amd64.deb
-apt install ./pbgopy_0.1.0_linux_amd64.deb
+wget https://github.com/nakabonne/pbgopy/releases/download/v0.1.1/pbgopy_0.1.1_linux_amd64.deb
+apt install ./pbgopy_0.1.1_linux_amd64.deb
 ```
 
 #### Go
@@ -48,14 +48,14 @@ You must allow access to this port for each device you want to share data with.
 pbgopy serve
 ```
 
-Put the address of the host where the `pbgopy serve` process is running into `PBGOPY_SERVER` environment variable.
+Populate the address of the host where the above process is running into the `PBGOPY_SERVER` environment variable. Then execute `pbgopy copy` to put the data entered in STDIN into the server.
 
 ```bash
 export PBGOPY_SERVER=http://host.xz:9090
 pbgopy copy <foo.png
 ```
 
-Then paste it on another device:
+Run `pbgopy paste` on the device you want to gain:
 
 ```bash
 export PBGOPY_SERVER=http://host.xz:9090
@@ -73,13 +73,13 @@ pbgopy serve --ttl 10m
 `pbgopy` comes with an ability to encrypt/decrypt with a common key, hence allows you to perform end-to-end encryption without working with external tools.
 
 ```bash
-pbgopy copy -k 32-byte-or-less-string <secret.txt
+pbgopy copy -p 32-byte-or-less-string <secret.txt
 ```
 
-Then decrypt with the same key:
+Then decrypt with the same password:
 
 ```bash
-pbgopy paste -k 32-byte-or-less-string
+pbgopy paste -p 32-byte-or-less-string
 ```
 
 ## Inspired By
