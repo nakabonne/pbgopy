@@ -8,7 +8,7 @@
 Binary releases are available through [here](https://github.com/nakabonne/pbgopy/releases).
 
 ## Usage
-First up, you start the pbgopy server, which works as a shared clipboard for devices. It listens on port 9090 by default.
+First up, you start the pbgopy server which works as a shared clipboard for devices. It listens on port 9090 by default.
 
 ```bash
 pbgopy serve
