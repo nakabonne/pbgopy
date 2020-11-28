@@ -1,0 +1,61 @@
+before:
+  hooks:
+    - go mod tidy
+builds:
+- main: .
+  binary: pbgopy
+  goos:
+    - freebsd
+    - darwin
+    - linux
+    - windows
+  goarch:
+    - amd64
+    - arm
+    - arm64
+    - 386
+    - ppc64le
+    - s390x
+    - mips64
+    - mips64le
+  goarm:
+    - 6
+    - 7
+  env:
+    - CGO_ENABLED=0
+  ldflags: -s -w -X github.com/nakabonne/pbgopy/commands.version={{.Version}} -X github.com/nakabonne/pbgopy/commands.commit={{.ShortCommit}} -X github.com/nakabonne/pbgopy/commands.date={{.Date}}
+
+archives:
+- replacements:
+    386: 32-bit
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ .Tag }}-next"
+
+brews:
+  - tap:
+      owner: nakabonne
+      name: homebrew-pbgopy
+    homepage: "https://github.com/nakabonne/pbgopy"
+    description: "Copy and paste between devices"
+
+nfpms:
+  - license: MIT
+    maintainer: Ryo Nakao <ryo@nakao.dev>
+    homepage: https://github.com/nakabonne/pbgopy
+    description: "Copy and paste between devices"
+    formats:
+      - rpm
+      - deb
+
+dockers:
+  - dockerfile: Dockerfile
+    binaries:
+      - pbgopy
+    image_templates:
+      - "nakabonne/pbgopy:latest"
+      - "nakabonne/pbgopy:{{ .Tag }}"
+      - "nakabonne/pbgopy:v{{ .Major }}.{{ .Minor }}"
