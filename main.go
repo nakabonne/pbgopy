@@ -5,9 +5,9 @@ import (
 	"io"
 	"os"
 
-	"github.com/nakabonne/pbgopy/commands"
-
 	"github.com/spf13/cobra"
+
+	"github.com/nakabonne/pbgopy/commands"
 )
 
 type app struct {
