@@ -4,11 +4,45 @@
 
 `pbgopy` acts like [pbcopy/pbpaste](https://www.unix.com/man-page/osx/1/pbcopy/) but for multiple devices. It lets you share data across devices like you copy and paste.
 
+![Demo](assets/demo.gif)
+
 ## Installation
 Binary releases are available through [here](https://github.com/nakabonne/pbgopy/releases).
 
+#### MacOS
+
+```
+brew install nakabonne/pbgopy/pbgopy
+```
+
+#### RHEL/CentOS
+
+```
+rpm -ivh https://github.com/nakabonne/pbgopy/releases/download/v0.1.0/pbgopy_0.1.0_linux_amd64.rpm
+```
+
+#### Debian/Ubuntu
+
+```
+wget https://github.com/nakabonne/pbgopy/releases/download/v0.1.0/pbgopy_0.1.0_linux_amd64.deb
+apt install ./pbgopy_0.1.0_linux_amd64.deb
+```
+
+#### Go
+
+```
+go get github.com/nakabonne/pbgopy
+```
+
+#### Docker
+
+```
+docker run --rm nakabonne/pbgopy pbgopy help
+```
+
 ## Usage
 First up, you start the pbgopy server which works as a shared clipboard for devices. It listens on port 9090 by default.
+You must allow access to this port for each device you want to share data with.
 
 ```bash
 pbgopy serve
@@ -17,14 +51,14 @@ pbgopy serve
 Put the address of the host where the `pbgopy serve` process is running into `PBGOPY_SERVER` environment variable.
 
 ```bash
-export PBGOPY_SERVER=http://192.168.11.5:9090
+export PBGOPY_SERVER=http://host.xz:9090
 pbgopy copy <foo.png
 ```
 
 Then paste it on another device:
 
 ```bash
-export PBGOPY_SERVER=http://192.168.11.5:9090
+export PBGOPY_SERVER=http://host.xz:9090
 pbgopy paste >foo.png
 ```
 
