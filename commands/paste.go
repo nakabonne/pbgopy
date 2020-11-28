@@ -1,6 +1,8 @@
 package commands
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -13,8 +15,10 @@ import (
 
 type pasteRunner struct {
 	timeout time.Duration
-	stdout  io.Writer
-	stderr  io.Writer
+	key     string
+
+	stdout io.Writer
+	stderr io.Writer
 }
 
 func NewPasteCommand(stdout, stderr io.Writer) *cobra.Command {
@@ -30,6 +34,7 @@ func NewPasteCommand(stdout, stderr io.Writer) *cobra.Command {
 		RunE: r.run,
 	}
 	cmd.Flags().DurationVar(&r.timeout, "timeout", 5*time.Second, "Time limit for requests")
+	cmd.Flags().StringVarP(&r.key, "key", "k", "", "Common key for encryption/decryption")
 	return cmd
 }
 
@@ -51,7 +56,45 @@ func (r *pasteRunner) run(_ *cobra.Command, _ []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to read the response body: %w", err)
 	}
+	if r.key != "" {
+		data, err = decrypt(r.key, data)
+		if err != nil {
+			return fmt.Errorf("failed to decrypt the data: %w", err)
+		}
+	}
 
 	fmt.Fprint(r.stdout, string(data))
 	return nil
+}
+
+func decrypt(key string, encryptedData []byte) ([]byte, error) {
+	k := []byte(key)
+	length := len(k)
+	if length > 32 {
+		return nil, fmt.Errorf("the key size should be less than 32 bytes")
+	}
+	if length < 32 {
+		// Fill it up with dummies
+		n := 32 - length
+		for i := 0; i < n; i++ {
+			k = append(k, dummyByteForKey)
+		}
+	}
+
+	block, err := aes.NewCipher(k)
+	if err != nil {
+		return nil, err
+	}
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+	nonceSize := gcm.NonceSize()
+	if len(encryptedData) < nonceSize {
+		return nil, fmt.Errorf("invalid cipher test")
+	}
+	nonce := encryptedData[:nonceSize]
+	ciphertext := encryptedData[nonceSize:]
+
+	return gcm.Open(nil, nonce, ciphertext, nil)
 }
