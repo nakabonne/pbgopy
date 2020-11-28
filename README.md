@@ -48,14 +48,14 @@ You must allow access to this port for each device you want to share data with.
 pbgopy serve
 ```
 
-Populate the address of the host where the above process is running into the `PBGOPY_SERVER` environment variable. Then execute `pbgopy copy` to put the data entered in STDIN into the server.
+Populate the address of the host where the above process is running into the `PBGOPY_SERVER` environment variable. Then put the data entered in STDIN into the server with:
 
 ```bash
 export PBGOPY_SERVER=http://host.xz:9090
 pbgopy copy <foo.png
 ```
 
-Run `pbgopy paste` on the device you want to gain:
+Paste it on another device with:
 
 ```bash
 export PBGOPY_SERVER=http://host.xz:9090
