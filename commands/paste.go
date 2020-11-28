@@ -14,8 +14,8 @@ import (
 )
 
 type pasteRunner struct {
-	timeout time.Duration
-	key     string
+	timeout  time.Duration
+	password string
 
 	stdout io.Writer
 	stderr io.Writer
@@ -34,7 +34,7 @@ func NewPasteCommand(stdout, stderr io.Writer) *cobra.Command {
 		RunE: r.run,
 	}
 	cmd.Flags().DurationVar(&r.timeout, "timeout", 5*time.Second, "Time limit for requests")
-	cmd.Flags().StringVarP(&r.key, "key", "k", "", "Common key for encryption/decryption")
+	cmd.Flags().StringVarP(&r.password, "password", "p", "", "Password for encryption/decryption")
 	return cmd
 }
 
@@ -56,8 +56,8 @@ func (r *pasteRunner) run(_ *cobra.Command, _ []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to read the response body: %w", err)
 	}
-	if r.key != "" {
-		data, err = decrypt(r.key, data)
+	if r.password != "" {
+		data, err = decrypt(r.password, data)
 		if err != nil {
 			return fmt.Errorf("failed to decrypt the data: %w", err)
 		}
@@ -67,21 +67,21 @@ func (r *pasteRunner) run(_ *cobra.Command, _ []string) error {
 	return nil
 }
 
-func decrypt(key string, encryptedData []byte) ([]byte, error) {
-	k := []byte(key)
-	length := len(k)
+func decrypt(password string, encryptedData []byte) ([]byte, error) {
+	p := []byte(password)
+	length := len(p)
 	if length > 32 {
-		return nil, fmt.Errorf("the key size should be less than 32 bytes")
+		return nil, fmt.Errorf("the password size should be less than 32 bytes")
 	}
 	if length < 32 {
 		// Fill it up with dummies
 		n := 32 - length
 		for i := 0; i < n; i++ {
-			k = append(k, dummyByteForKey)
+			p = append(p, dummyChar)
 		}
 	}
 
-	block, err := aes.NewCipher(k)
+	block, err := aes.NewCipher(p)
 	if err != nil {
 		return nil, err
 	}

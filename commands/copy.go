@@ -14,11 +14,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const dummyByteForKey = byte('-')
+const dummyChar = byte('-')
 
 type copyRunner struct {
-	timeout time.Duration
-	key     string
+	timeout  time.Duration
+	password string
 
 	stdout io.Writer
 	stderr io.Writer
@@ -37,7 +37,7 @@ func NewCopyCommand(stdout, stderr io.Writer) *cobra.Command {
 		RunE: r.run,
 	}
 	cmd.Flags().DurationVar(&r.timeout, "timeout", 5*time.Second, "Time limit for requests")
-	cmd.Flags().StringVarP(&r.key, "key", "k", "", "Common key for encryption/decryption")
+	cmd.Flags().StringVarP(&r.password, "password", "p", "", "Password for encryption/decryption")
 	return cmd
 }
 
@@ -50,8 +50,8 @@ func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to read from STDIN: %w", err)
 	}
-	if r.key != "" {
-		data, err = encrypt(r.key, data)
+	if r.password != "" {
+		data, err = encrypt(r.password, data)
 		if err != nil {
 			return fmt.Errorf("failed to encrypt the data: %w", err)
 		}
@@ -70,21 +70,21 @@ func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 	return nil
 }
 
-func encrypt(key string, data []byte) ([]byte, error) {
-	k := []byte(key)
-	length := len(k)
+func encrypt(password string, data []byte) ([]byte, error) {
+	p := []byte(password)
+	length := len(p)
 	if length > 32 {
-		return nil, fmt.Errorf("the key size should be less than 32 bytes")
+		return nil, fmt.Errorf("the password size should be less than 32 bytes")
 	}
 	if length < 32 {
 		// Fill it up with dummies
 		n := 32 - length
 		for i := 0; i < n; i++ {
-			k = append(k, dummyByteForKey)
+			p = append(p, dummyChar)
 		}
 	}
 
-	block, err := aes.NewCipher(k)
+	block, err := aes.NewCipher(p)
 	if err != nil {
 		return nil, err
 	}
