@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"math/rand"
 	"net/http"
 	"time"
 
@@ -14,6 +13,7 @@ import (
 
 	"github.com/nakabonne/pbgopy/cache"
 	"github.com/nakabonne/pbgopy/cache/memorycache"
+	pcrypt "github.com/nakabonne/pbgopy/crypt"
 )
 
 const (
@@ -132,7 +132,7 @@ func (r *serveRunner) handleSalt(w http.ResponseWriter, req *http.Request) {
 		}
 		http.Error(w, fmt.Sprintf("The cached data is unknown type: %T", salt), http.StatusInternalServerError)
 	case http.MethodPut:
-		salt := randomBytes(128)
+		salt := pcrypt.RandomBytes(128)
 		if err := r.cache.Put(saltKey, salt); err != nil {
 			http.Error(w, fmt.Sprintf("Failed to cache: %v", err), http.StatusInternalServerError)
 			return
@@ -141,18 +141,4 @@ func (r *serveRunner) handleSalt(w http.ResponseWriter, req *http.Request) {
 	default:
 		http.Error(w, fmt.Sprintf("Method %s is not allowed", req.Method), http.StatusMethodNotAllowed)
 	}
-}
-
-const charset = "abcdefghijklmnopqrstuvwxyz" +
-	"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-
-var seededRand = rand.New(rand.NewSource(time.Now().UnixNano()))
-
-// randomBytes yields a random string with the given length.
-func randomBytes(length int) []byte {
-	b := make([]byte, length)
-	for i := range b {
-		b[i] = charset[seededRand.Intn(len(charset))]
-	}
-	return b
 }
