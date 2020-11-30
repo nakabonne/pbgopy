@@ -126,7 +126,6 @@ func (r *serveRunner) handleSalt(w http.ResponseWriter, req *http.Request) {
 	default:
 		http.Error(w, fmt.Sprintf("Method %s is not allowed", req.Method), http.StatusMethodNotAllowed)
 	}
-
 }
 
 const charset = "abcdefghijklmnopqrstuvwxyz" +
