@@ -2,19 +2,16 @@ package commands
 
 import (
 	"bytes"
-	"crypto/aes"
-	"crypto/cipher"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
 )
-
-const dummyChar = byte('-')
 
 type copyRunner struct {
 	timeout  time.Duration
@@ -50,16 +47,21 @@ func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to read from STDIN: %w", err)
 	}
+
+	client := &http.Client{
+		Timeout: r.timeout,
+	}
 	if r.password != "" {
-		data, err = encrypt(r.password, data)
+		salt, err := regenerateSalt(client, address)
+		if err != nil {
+			return fmt.Errorf("failed to get salt: %w", err)
+		}
+		data, err = encrypt(r.password, salt, data)
 		if err != nil {
 			return fmt.Errorf("failed to encrypt the data: %w", err)
 		}
 	}
 
-	client := &http.Client{
-		Timeout: r.timeout,
-	}
 	req, err := http.NewRequest(http.MethodPut, address, bytes.NewBuffer(data))
 	if err != nil {
 		return fmt.Errorf("failed to make request: %w", err)
@@ -70,29 +72,20 @@ func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 	return nil
 }
 
-func encrypt(password string, data []byte) ([]byte, error) {
-	p := []byte(password)
-	length := len(p)
-	if length > 32 {
-		return nil, fmt.Errorf("the password size should be less than 32 bytes")
+// regenerateSalt lets the server regenerate the salt and gives back the new one.
+func regenerateSalt(client *http.Client, address string) ([]byte, error) {
+	if strings.HasSuffix(address, "/") {
+		address = address[:len(address)-1]
 	}
-	if length < 32 {
-		// Fill it up with dummies
-		n := 32 - length
-		for i := 0; i < n; i++ {
-			p = append(p, dummyChar)
-		}
+	req, err := http.NewRequest(http.MethodPut, fmt.Sprintf("%s%s", address, saltPath), bytes.NewBuffer([]byte{}))
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
 	}
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to issue request: %w", err)
+	}
+	defer res.Body.Close()
 
-	block, err := aes.NewCipher(p)
-	if err != nil {
-		return nil, err
-	}
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, err
-	}
-	nonce := make([]byte, gcm.NonceSize())
-	encryptedData := gcm.Seal(nonce, nonce, data, nil)
-	return encryptedData, nil
+	return ioutil.ReadAll(res.Body)
 }

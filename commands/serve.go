@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"time"
 
@@ -18,12 +19,16 @@ import (
 const (
 	defaultPort = 9090
 	defaultTTL  = time.Hour * 24
+
+	rootPath = "/"
+	saltPath = "/salt"
 )
 
 type serveRunner struct {
 	port int
 	ttl  time.Duration
 
+	salt   []byte
 	cache  cache.Cache
 	stdout io.Writer
 	stderr io.Writer
@@ -62,7 +67,8 @@ func (r *serveRunner) run(_ *cobra.Command, _ []string) error {
 		Addr:    fmt.Sprintf(":%d", r.port),
 		Handler: mux,
 	}
-	mux.HandleFunc("/", r.handle)
+	mux.HandleFunc(rootPath, r.handle)
+	mux.HandleFunc(saltPath, r.handleSalt)
 
 	defer func() {
 		log.Println("Start gracefully shutting down the server")
@@ -107,4 +113,31 @@ func (r *serveRunner) handle(w http.ResponseWriter, req *http.Request) {
 	default:
 		http.Error(w, fmt.Sprintf("Method %s is not allowed", req.Method), http.StatusMethodNotAllowed)
 	}
+}
+
+func (r *serveRunner) handleSalt(w http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+	case http.MethodGet:
+		w.Write(r.salt)
+	case http.MethodPut:
+		r.salt = randomBytes(128)
+		w.Write(r.salt)
+	default:
+		http.Error(w, fmt.Sprintf("Method %s is not allowed", req.Method), http.StatusMethodNotAllowed)
+	}
+
+}
+
+const charset = "abcdefghijklmnopqrstuvwxyz" +
+	"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+var seededRand = rand.New(rand.NewSource(time.Now().UnixNano()))
+
+// randomBytes yields a random string with the given length.
+func randomBytes(length int) []byte {
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[seededRand.Intn(len(charset))]
+	}
+	return b
 }

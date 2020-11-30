@@ -1,13 +1,12 @@
 package commands
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -57,7 +56,11 @@ func (r *pasteRunner) run(_ *cobra.Command, _ []string) error {
 		return fmt.Errorf("failed to read the response body: %w", err)
 	}
 	if r.password != "" {
-		data, err = decrypt(r.password, data)
+		salt, err := getSalt(client, address)
+		if err != nil {
+			return fmt.Errorf("failed to get salt: %w", err)
+		}
+		data, err = decrypt(r.password, salt, data)
 		if err != nil {
 			return fmt.Errorf("failed to decrypt the data: %w", err)
 		}
@@ -67,34 +70,16 @@ func (r *pasteRunner) run(_ *cobra.Command, _ []string) error {
 	return nil
 }
 
-func decrypt(password string, encryptedData []byte) ([]byte, error) {
-	p := []byte(password)
-	length := len(p)
-	if length > 32 {
-		return nil, fmt.Errorf("the password size should be less than 32 bytes")
+// getSalt gives back the salt.
+func getSalt(client *http.Client, address string) ([]byte, error) {
+	if strings.HasSuffix(address, "/") {
+		address = address[:len(address)-1]
 	}
-	if length < 32 {
-		// Fill it up with dummies
-		n := 32 - length
-		for i := 0; i < n; i++ {
-			p = append(p, dummyChar)
-		}
-	}
-
-	block, err := aes.NewCipher(p)
+	res, err := client.Get(fmt.Sprintf("%s%s", address, saltPath))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to issue get request: %w", err)
 	}
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, err
-	}
-	nonceSize := gcm.NonceSize()
-	if len(encryptedData) < nonceSize {
-		return nil, fmt.Errorf("invalid cipher test")
-	}
-	nonce := encryptedData[:nonceSize]
-	ciphertext := encryptedData[nonceSize:]
+	defer res.Body.Close()
 
-	return gcm.Open(nil, nonce, ciphertext, nil)
+	return ioutil.ReadAll(res.Body)
 }
