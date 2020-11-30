@@ -22,6 +22,9 @@ const (
 
 	rootPath = "/"
 	saltPath = "/salt"
+
+	dataKey = "data"
+	saltKey = "salt"
 )
 
 type serveRunner struct {
@@ -86,11 +89,10 @@ func (r *serveRunner) run(_ *cobra.Command, _ []string) error {
 }
 
 func (r *serveRunner) handle(w http.ResponseWriter, req *http.Request) {
-	const cacheKey = "key"
 
 	switch req.Method {
 	case http.MethodGet:
-		data, err := r.cache.Get(cacheKey)
+		data, err := r.cache.Get(dataKey)
 		if err != nil {
 			http.Error(w, "Failed to get data from cache", http.StatusInternalServerError)
 			return
@@ -106,7 +108,7 @@ func (r *serveRunner) handle(w http.ResponseWriter, req *http.Request) {
 			http.Error(w, "Bad request body", http.StatusBadRequest)
 			return
 		}
-		if err := r.cache.Put(cacheKey, body); err != nil {
+		if err := r.cache.Put(dataKey, body); err != nil {
 			http.Error(w, fmt.Sprintf("Failed to cache: %v", err), http.StatusInternalServerError)
 			return
 		}
@@ -119,10 +121,23 @@ func (r *serveRunner) handle(w http.ResponseWriter, req *http.Request) {
 func (r *serveRunner) handleSalt(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case http.MethodGet:
-		w.Write(r.salt)
+		salt, err := r.cache.Get(saltKey)
+		if err != nil {
+			http.Error(w, "Failed to get salt from cache", http.StatusInternalServerError)
+			return
+		}
+		if s, ok := salt.([]byte); ok {
+			w.Write(s)
+			return
+		}
+		http.Error(w, fmt.Sprintf("The cached data is unknown type: %T", salt), http.StatusInternalServerError)
 	case http.MethodPut:
-		r.salt = randomBytes(128)
-		w.Write(r.salt)
+		salt := randomBytes(128)
+		if err := r.cache.Put(saltKey, salt); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to cache: %v", err), http.StatusInternalServerError)
+			return
+		}
+		w.Write(salt)
 	default:
 		http.Error(w, fmt.Sprintf("Method %s is not allowed", req.Method), http.StatusMethodNotAllowed)
 	}
