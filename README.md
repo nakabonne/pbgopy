@@ -1,5 +1,5 @@
 # pbgopy
-[![Release](https://img.shields.io/github/release/nakabonne/pbgopy.svg?color=orange)](https://github.com/nakabonne/pbgopy/releases/latest)
+[![Release](https://img.shields.io/github/release/nakabonne/pbgopy.svg?color=orange&style=flat-square)](https://github.com/nakabonne/pbgopy/releases/latest)
 [![go.dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/mod/github.com/nakabonne/pbgopy?tab=packages)
 
 `pbgopy` acts like [pbcopy/pbpaste](https://www.unix.com/man-page/osx/1/pbcopy/) but for multiple devices. It lets you share data across devices like you copy and paste.
@@ -73,13 +73,13 @@ pbgopy serve --ttl 10m
 `pbgopy` comes with an ability to encrypt/decrypt with a common key, hence allows you to perform end-to-end encryption without working with external tools.
 
 ```bash
-pbgopy copy -p 32-byte-or-less-string <secret.txt
+pbgopy copy -p something <secret.txt
 ```
 
 Then decrypt with the same password:
 
 ```bash
-pbgopy paste -p 32-byte-or-less-string
+pbgopy paste -p something
 ```
 
 ## Inspired By
