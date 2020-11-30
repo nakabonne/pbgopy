@@ -28,6 +28,7 @@ type serveRunner struct {
 	port int
 	ttl  time.Duration
 
+	// random data used as an additional input for hashing data.
 	salt   []byte
 	cache  cache.Cache
 	stdout io.Writer
