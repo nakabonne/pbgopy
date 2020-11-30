@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+
+	pcrypt "github.com/nakabonne/pbgopy/crypt"
 )
 
 type copyRunner struct {
@@ -56,7 +58,7 @@ func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 		if err != nil {
 			return fmt.Errorf("failed to get salt: %w", err)
 		}
-		data, err = encrypt(r.password, salt, data)
+		data, err = pcrypt.Encrypt(r.password, salt, data)
 		if err != nil {
 			return fmt.Errorf("failed to encrypt the data: %w", err)
 		}

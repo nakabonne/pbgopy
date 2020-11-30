@@ -1,10 +1,12 @@
-package commands
+package crypt
 
 import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/sha256"
 	"fmt"
+	"math/rand"
+	"time"
 
 	"golang.org/x/crypto/pbkdf2"
 )
@@ -14,7 +16,7 @@ const (
 	keyLength             = 32
 )
 
-func encrypt(password string, salt, data []byte) ([]byte, error) {
+func Encrypt(password string, salt, data []byte) ([]byte, error) {
 	key := pbkdf2.Key([]byte(password), salt, defaultIterationCount, keyLength, sha256.New)
 
 	block, err := aes.NewCipher(key)
@@ -31,7 +33,7 @@ func encrypt(password string, salt, data []byte) ([]byte, error) {
 	return encryptedData, nil
 }
 
-func decrypt(password string, salt, encryptedData []byte) ([]byte, error) {
+func Decrypt(password string, salt, encryptedData []byte) ([]byte, error) {
 	key := pbkdf2.Key([]byte(password), salt, defaultIterationCount, keyLength, sha256.New)
 
 	block, err := aes.NewCipher(key)
@@ -50,4 +52,18 @@ func decrypt(password string, salt, encryptedData []byte) ([]byte, error) {
 	ciphertext := encryptedData[nonceSize:]
 
 	return gcm.Open(nil, nonce, ciphertext, nil)
+}
+
+const charset = "abcdefghijklmnopqrstuvwxyz" +
+	"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+var seededRand = rand.New(rand.NewSource(time.Now().UnixNano()))
+
+// RandomBytes yields a random bytes with the given length.
+func RandomBytes(length int) []byte {
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[seededRand.Intn(len(charset))]
+	}
+	return b
 }
