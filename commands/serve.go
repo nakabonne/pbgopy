@@ -13,7 +13,7 @@ import (
 
 	"github.com/nakabonne/pbgopy/cache"
 	"github.com/nakabonne/pbgopy/cache/memorycache"
-	pcrypt "github.com/nakabonne/pbgopy/crypt"
+	pbcrypto "github.com/nakabonne/pbgopy/crypto"
 )
 
 const (
@@ -132,7 +132,7 @@ func (r *serveRunner) handleSalt(w http.ResponseWriter, req *http.Request) {
 		}
 		http.Error(w, fmt.Sprintf("The cached data is unknown type: %T", salt), http.StatusInternalServerError)
 	case http.MethodPut:
-		salt := pcrypt.RandomBytes(128)
+		salt := pbcrypto.RandomBytes(128)
 		if err := r.cache.Put(saltKey, salt); err != nil {
 			http.Error(w, fmt.Sprintf("Failed to cache: %v", err), http.StatusInternalServerError)
 			return

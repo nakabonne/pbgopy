@@ -1,4 +1,4 @@
-package crypt
+package crypto
 
 import (
 	"crypto/aes"

@@ -11,7 +11,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	pcrypt "github.com/nakabonne/pbgopy/crypt"
+	pbcrypto "github.com/nakabonne/pbgopy/crypto"
 )
 
 type pasteRunner struct {
@@ -62,7 +62,7 @@ func (r *pasteRunner) run(_ *cobra.Command, _ []string) error {
 		if err != nil {
 			return fmt.Errorf("failed to get salt: %w", err)
 		}
-		data, err = pcrypt.Decrypt(r.password, salt, data)
+		data, err = pbcrypto.Decrypt(r.password, salt, data)
 		if err != nil {
 			return fmt.Errorf("failed to decrypt the data: %w", err)
 		}
