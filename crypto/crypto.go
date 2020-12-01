@@ -3,10 +3,12 @@ package crypto
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/rand"
+	cryrand "crypto/rand"
 	"crypto/sha256"
 	"fmt"
 	"io"
+	"math/rand"
+	"time"
 
 	"golang.org/x/crypto/pbkdf2"
 )
@@ -57,10 +59,24 @@ func Decrypt(password string, salt, encryptedData []byte) ([]byte, error) {
 	return gcm.Open(nil, nonce, ciphertext, nil)
 }
 
+const charset = "abcdefghijklmnopqrstuvwxyz" +
+	"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+var seededRand = rand.New(rand.NewSource(time.Now().UnixNano()))
+
+// RandomBytes yields a random bytes with the given length.
+func RandomBytes(length int) []byte {
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[seededRand.Intn(len(charset))]
+	}
+	return b
+}
+
 func GetNonce(length int) ([]byte, error) {
 	nonce := make([]byte, length)
 
-	_, err := io.ReadFull(rand.Reader, nonce)
+	_, err := io.ReadFull(cryrand.Reader, nonce)
 	if err != nil {
 		return nil, err
 	}
