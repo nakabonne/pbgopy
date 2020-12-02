@@ -29,7 +29,7 @@ func Encrypt(password string, salt, data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	nonce, err := GetNonce(gcm.NonceSize())
+	nonce, err := getNonce(gcm.NonceSize())
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +73,7 @@ func RandomBytes(length int) []byte {
 	return b
 }
 
-func GetNonce(length int) ([]byte, error) {
+func getNonce(length int) ([]byte, error) {
 	nonce := make([]byte, length)
 
 	_, err := io.ReadFull(cryrand.Reader, nonce)
