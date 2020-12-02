@@ -28,8 +28,9 @@ const (
 )
 
 type serveRunner struct {
-	port int
-	ttl  time.Duration
+	port      int
+	ttl       time.Duration
+	basicAuth string
 
 	// random data used as an additional input for hashing data.
 	salt   []byte
@@ -53,6 +54,7 @@ func NewServeCommand(stdout, stderr io.Writer) *cobra.Command {
 
 	cmd.Flags().IntVarP(&r.port, "port", "p", defaultPort, "The port the server listens on")
 	cmd.Flags().DurationVar(&r.ttl, "ttl", defaultTTL, "The time that the contents is stored. Give 0s for disabling TTL")
+	cmd.Flags().StringVarP(&r.basicAuth, "basic-auth", "a", "", "Basic authentication, username:password")
 	return cmd
 }
 
@@ -71,8 +73,8 @@ func (r *serveRunner) run(_ *cobra.Command, _ []string) error {
 		Addr:    fmt.Sprintf(":%d", r.port),
 		Handler: mux,
 	}
-	mux.HandleFunc(rootPath, r.handle)
-	mux.HandleFunc(saltPath, r.handleSalt)
+	mux.HandleFunc(rootPath, r.basicAuthHandler(r.handle))
+	mux.HandleFunc(saltPath, r.basicAuthHandler(r.handleSalt))
 
 	defer func() {
 		log.Println("Start gracefully shutting down the server")
@@ -140,5 +142,24 @@ func (r *serveRunner) handleSalt(w http.ResponseWriter, req *http.Request) {
 		w.Write(salt)
 	default:
 		http.Error(w, fmt.Sprintf("Method %s is not allowed", req.Method), http.StatusMethodNotAllowed)
+	}
+}
+
+// basicAuthHandler wraps a handler, enforcing basic authentication if the basic auth flag is set.
+func (r *serveRunner) basicAuthHandler(handler http.HandlerFunc) http.HandlerFunc {
+	if r.basicAuth == "" {
+		return func(w http.ResponseWriter, r *http.Request) {
+			handler(w, r)
+		}
+	}
+	return func(w http.ResponseWriter, req *http.Request) {
+		user, pass, ok := req.BasicAuth()
+		if !ok || r.basicAuth != user+":"+pass {
+			w.WriteHeader(401)
+			_, _ = w.Write([]byte("Unauthorised.\n"))
+			return
+		}
+
+		handler(w, req)
 	}
 }
