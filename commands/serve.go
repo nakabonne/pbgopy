@@ -67,14 +67,7 @@ func (r *serveRunner) run(_ *cobra.Command, _ []string) error {
 		r.cache = memorycache.NewTTLCache(ctx, r.ttl, r.ttl)
 	}
 
-	// Start HTTP server
-	mux := http.NewServeMux()
-	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", r.port),
-		Handler: mux,
-	}
-	mux.HandleFunc(rootPath, r.basicAuthHandler(r.handle))
-	mux.HandleFunc(saltPath, r.basicAuthHandler(r.handleSalt))
+	server := r.CreateServer()
 
 	defer func() {
 		log.Println("Start gracefully shutting down the server")
@@ -88,6 +81,18 @@ func (r *serveRunner) run(_ *cobra.Command, _ []string) error {
 		return fmt.Errorf("failed to start the server: %w", err)
 	}
 	return nil
+}
+
+func (r *serveRunner) CreateServer() *http.Server {
+	// Start HTTP server
+	mux := http.NewServeMux()
+	server := &http.Server{
+		Addr:    fmt.Sprintf(":%d", r.port),
+		Handler: mux,
+	}
+	mux.HandleFunc(rootPath, r.basicAuthHandler(r.handle))
+	mux.HandleFunc(saltPath, r.basicAuthHandler(r.handleSalt))
+	return server
 }
 
 func (r *serveRunner) handle(w http.ResponseWriter, req *http.Request) {
@@ -156,7 +161,7 @@ func (r *serveRunner) basicAuthHandler(handler http.HandlerFunc) http.HandlerFun
 		user, pass, ok := req.BasicAuth()
 		if !ok || r.basicAuth != user+":"+pass {
 			w.WriteHeader(401)
-			_, _ = w.Write([]byte("Unauthorised.\n"))
+			_, _ = w.Write([]byte("Unauthorized.\n"))
 			return
 		}
 
