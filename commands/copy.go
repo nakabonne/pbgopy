@@ -41,6 +41,7 @@ func NewCopyCommand(stdout, stderr io.Writer) *cobra.Command {
 }
 
 func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
+
 	address := os.Getenv(pbgopyServerEnv)
 	if address == "" {
 		return fmt.Errorf("put the pbgopy server's address into %s environment variable", pbgopyServerEnv)
@@ -53,12 +54,24 @@ func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 	client := &http.Client{
 		Timeout: r.timeout,
 	}
+
+	var password string
+
 	if r.password != "" {
+		password = r.password
+	} else if os.Getenv(pbgopyPasswordFileEnv) != "" {
+		password, err = getPasswordFromEnv(os.Getenv(pbgopyPasswordFileEnv))
+		if err != nil {
+			return err
+		}
+	}
+
+	if len(password) != 0 {
 		salt, err := regenerateSalt(client, address)
 		if err != nil {
 			return fmt.Errorf("failed to get salt: %w", err)
 		}
-		data, err = pbcrypto.Encrypt(r.password, salt, data)
+		data, err = pbcrypto.Encrypt(password, salt, data)
 		if err != nil {
 			return fmt.Errorf("failed to encrypt the data: %w", err)
 		}
@@ -72,6 +85,27 @@ func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 		return fmt.Errorf("failed to issue request: %w", err)
 	}
 	return nil
+}
+
+func getPasswordFromEnv(fileLoc string) (string, error) {
+	file, err := os.Open(fileLoc)
+	if err != nil {
+		return "", fmt.Errorf("failed to open password file: %w", err)
+	}
+
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return "", fmt.Errorf("unable to get file information: %w", err)
+	}
+
+	passBuf := make([]byte, fileInfo.Size())
+
+	_, err = io.ReadFull(file, passBuf)
+	if err != nil {
+		return "", fmt.Errorf("unable to read file: %w", err)
+	}
+
+	return string(passBuf), nil
 }
 
 // regenerateSalt lets the server regenerate the salt and gives back the new one.

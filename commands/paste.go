@@ -57,12 +57,24 @@ func (r *pasteRunner) run(_ *cobra.Command, _ []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to read the response body: %w", err)
 	}
+
+	var password string
+
 	if r.password != "" {
+		password = r.password
+	} else if os.Getenv(pbgopyPasswordFileEnv) != "" {
+		password, err = getPasswordFromEnv(os.Getenv(pbgopyPasswordFileEnv))
+		if err != nil {
+			return err
+		}
+	}
+
+	if len(password) != 0 {
 		salt, err := getSalt(client, address)
 		if err != nil {
 			return fmt.Errorf("failed to get salt: %w", err)
 		}
-		data, err = pbcrypto.Decrypt(r.password, salt, data)
+		data, err = pbcrypto.Decrypt(password, salt, data)
 		if err != nil {
 			return fmt.Errorf("failed to decrypt the data: %w", err)
 		}
