@@ -3,6 +3,7 @@ package commands
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -41,7 +42,7 @@ func NewCopyCommand(stdout, stderr io.Writer) *cobra.Command {
 	cmd.Flags().DurationVar(&r.timeout, "timeout", 5*time.Second, "Time limit for requests")
 	cmd.Flags().StringVarP(&r.password, "password", "p", "", "Password for encryption/decryption")
 	cmd.Flags().StringVarP(&r.basicAuth, "basic-auth", "a", "", "Basic authentication, username:password")
-	cmd.Flags().IntVar(&r.maxBufSize, "maxSize", 500, "Max data size in MB")
+	cmd.Flags().IntVar(&r.maxBufSize, "max-size", 500, "Max data size in MB")
 	return cmd
 }
 
@@ -90,15 +91,15 @@ func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 }
 
 // readNoMoreThan reads at most, max bytes from reader.
-//It returns an error if there is more data to be read.
+// It returns an error if there is more data to be read.
 func readNoMoreThan(r io.Reader, max int) ([]byte, error) {
-	//try to read 1byte more than the max
+	// try to read 1byte more than the max
 	data := make([]byte, max+1)
 	_, err := io.ReadFull(r, data)
 	if err == nil {
 		return nil, fmt.Errorf("data size exceeds %dBytes", max)
 	}
-	if err != io.ErrUnexpectedEOF {
+	if !errors.Is(err, io.ErrUnexpectedEOF) {
 		return nil, err
 	}
 	return data, nil
