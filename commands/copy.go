@@ -96,32 +96,27 @@ func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 
 // readNoMoreThan reads at most, max bytes from reader.
 // It returns an error if there is more data to be read.
-func readNoMoreThan(r io.Reader, max uint64) ([]byte, error) {
-	// try to read 1byte more than the max
-	data := make([]byte, max+1)
-	_, err := io.ReadFull(r, data)
-	if err == nil {
-		return nil, fmt.Errorf("input data exceeds limit %s", bytesToDatasize(max))
-	}
-	if !errors.Is(err, io.ErrUnexpectedEOF) {
+func readNoMoreThan(r io.Reader, max int64) ([]byte, error) {
+	var data bytes.Buffer
+	// try to read one byte more than the max
+	n, err := data.ReadFrom(io.LimitReader(r, max+1))
+	if err != nil {
 		return nil, err
 	}
-	return data, nil
+	if n > max {
+		return data.Bytes(), fmt.Errorf("input data exceeds set limit %dBytes", max)
+	}
+	return data.Bytes(), nil
 }
 
 // datasizeToBytes converts a datasize to its equivalent in bytes.
-func datasizeToBytes(ds string) (uint64, error) {
+func datasizeToBytes(ds string) (int64, error) {
 	var maxBufSizeBytes datasize.ByteSize
 	err := maxBufSizeBytes.UnmarshalText([]byte(ds))
 	if err != nil {
 		return 0, errors.Unwrap(err)
 	}
-	return maxBufSizeBytes.Bytes(), nil
-}
-
-// bytesToDatasize converts bytes to a human-readable datasize
-func bytesToDatasize(b uint64) string {
-	return datasize.ByteSize(b).HumanReadable()
+	return int64(maxBufSizeBytes.Bytes()), nil
 }
 
 // regenerateSalt lets the server regenerate the salt and gives back the new one.
