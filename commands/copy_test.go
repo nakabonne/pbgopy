@@ -87,6 +87,10 @@ func TestDatasizeToBytes(t *testing.T) {
 			datasize: "-4mb",
 			err:      errInvalidSyntax,
 		},
+		{
+			datasize: "1.1kb",
+			err:      errInvalidSyntax,
+		},
 	}
 
 	for _, tc := range testCases {
