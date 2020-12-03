@@ -3,6 +3,7 @@ package commands
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -11,15 +12,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/c2h5oh/datasize"
 	"github.com/spf13/cobra"
 
 	pbcrypto "github.com/nakabonne/pbgopy/crypto"
 )
 
 type copyRunner struct {
-	timeout   time.Duration
-	password  string
-	basicAuth string
+	timeout    time.Duration
+	password   string
+	basicAuth  string
+	maxBufSize string
 
 	stdout io.Writer
 	stderr io.Writer
@@ -40,6 +43,7 @@ func NewCopyCommand(stdout, stderr io.Writer) *cobra.Command {
 	cmd.Flags().DurationVar(&r.timeout, "timeout", 5*time.Second, "Time limit for requests")
 	cmd.Flags().StringVarP(&r.password, "password", "p", "", "Password for encryption/decryption")
 	cmd.Flags().StringVarP(&r.basicAuth, "basic-auth", "a", "", "Basic authentication, username:password")
+	cmd.Flags().StringVar(&r.maxBufSize, "max-size", "500mb", "Max data size with unit")
 	return cmd
 }
 
@@ -48,7 +52,12 @@ func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 	if address == "" {
 		return fmt.Errorf("put the pbgopy server's address into %s environment variable", pbgopyServerEnv)
 	}
-	data, err := ioutil.ReadAll(os.Stdin)
+
+	sizeInBytes, err := datasizeToBytes(r.maxBufSize)
+	if err != nil {
+		return fmt.Errorf("failed to parse data size: %w", err)
+	}
+	data, err := readNoMoreThan(os.Stdin, sizeInBytes)
 	if err != nil {
 		return fmt.Errorf("failed to read from STDIN: %w", err)
 	}
@@ -83,6 +92,29 @@ func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 	}
 
 	return nil
+}
+
+// readNoMoreThan reads at most, max bytes from reader.
+// It returns an error if there is more data to be read.
+func readNoMoreThan(r io.Reader, max int64) ([]byte, error) {
+	var data bytes.Buffer
+	n, err := data.ReadFrom(io.LimitReader(r, max+1))
+	if err != nil {
+		return nil, err
+	}
+	if n > max {
+		return nil, fmt.Errorf("input data exceeds set limit %dBytes", max)
+	}
+	return data.Bytes(), nil
+}
+
+// datasizeToBytes converts a datasize to its equivalent in bytes.
+func datasizeToBytes(ds string) (int64, error) {
+	var maxBufSizeBytes datasize.ByteSize
+	if err := maxBufSizeBytes.UnmarshalText([]byte(ds)); err != nil {
+		return 0, errors.Unwrap(err)
+	}
+	return int64(maxBufSizeBytes.Bytes()), nil
 }
 
 // regenerateSalt lets the server regenerate the salt and gives back the new one.
