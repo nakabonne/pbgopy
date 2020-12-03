@@ -3,8 +3,10 @@ package crypto
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	cryrand "crypto/rand"
 	"crypto/sha256"
 	"fmt"
+	"io"
 	"math/rand"
 	"time"
 
@@ -27,8 +29,11 @@ func Encrypt(password string, salt, data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	nonce := make([]byte, gcm.NonceSize())
-	// TODO: Stop using an empty nonce for GCM
+	nonce, err := getNonce(gcm.NonceSize())
+	if err != nil {
+		return nil, err
+	}
+
 	encryptedData := gcm.Seal(nonce, nonce, data, nil)
 	return encryptedData, nil
 }
@@ -66,4 +71,15 @@ func RandomBytes(length int) []byte {
 		b[i] = charset[seededRand.Intn(len(charset))]
 	}
 	return b
+}
+
+func getNonce(length int) ([]byte, error) {
+	nonce := make([]byte, length)
+
+	_, err := io.ReadFull(cryrand.Reader, nonce)
+	if err != nil {
+		return nil, err
+	}
+
+	return nonce, nil
 }
