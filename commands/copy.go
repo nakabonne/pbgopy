@@ -104,7 +104,7 @@ func readNoMoreThan(r io.Reader, max int64) ([]byte, error) {
 		return nil, err
 	}
 	if n > max {
-		return data.Bytes(), fmt.Errorf("input data exceeds set limit %dBytes", max)
+		return nil, fmt.Errorf("input data exceeds set limit %dBytes", max)
 	}
 	return data.Bytes(), nil
 }
