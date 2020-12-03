@@ -112,8 +112,7 @@ func readNoMoreThan(r io.Reader, max int64) ([]byte, error) {
 // datasizeToBytes converts a datasize to its equivalent in bytes.
 func datasizeToBytes(ds string) (int64, error) {
 	var maxBufSizeBytes datasize.ByteSize
-	err := maxBufSizeBytes.UnmarshalText([]byte(ds))
-	if err != nil {
+	if err := maxBufSizeBytes.UnmarshalText([]byte(ds)); err != nil {
 		return 0, errors.Unwrap(err)
 	}
 	return int64(maxBufSizeBytes.Bytes()), nil
