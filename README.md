@@ -28,6 +28,14 @@ wget https://github.com/nakabonne/pbgopy/releases/download/v0.1.1/pbgopy_0.1.1_l
 apt install ./pbgopy_0.1.1_linux_amd64.deb
 ```
 
+#### Arch Linux
+
+AUR package is available: [pbgopy](https://aur.archlinux.org/packages/pbgopy/)
+
+```
+yay pbgopy
+```
+
 #### Go
 
 ```
