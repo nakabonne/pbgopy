@@ -67,7 +67,7 @@ func (r *serveRunner) run(_ *cobra.Command, _ []string) error {
 		r.cache = memorycache.NewTTLCache(ctx, r.ttl, r.ttl)
 	}
 
-	server := r.CreateServer()
+	server := r.createServer()
 
 	defer func() {
 		log.Println("Start gracefully shutting down the server")
@@ -83,7 +83,7 @@ func (r *serveRunner) run(_ *cobra.Command, _ []string) error {
 	return nil
 }
 
-func (r *serveRunner) CreateServer() *http.Server {
+func (r *serveRunner) createServer() *http.Server {
 	// Start HTTP server
 	mux := http.NewServeMux()
 	server := &http.Server{

@@ -2,19 +2,20 @@ package commands
 
 import (
 	"encoding/base64"
-	"github.com/nakabonne/pbgopy/cache/memorycache"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/nakabonne/pbgopy/cache/memorycache"
 )
 
 func TestServerCopy(t *testing.T) {
 	cache := memorycache.NewCache()
 	r := &serveRunner{cache: cache}
 
-	handler := r.CreateServer().Handler
+	handler := r.createServer().Handler
 
 	req, err := http.NewRequest("PUT", "/", strings.NewReader("clipboardValue"))
 	if err != nil {
@@ -38,7 +39,7 @@ func TestServerCopyBasicAuth_validCredentials(t *testing.T) {
 	cache := memorycache.NewCache()
 	r := &serveRunner{cache: cache, basicAuth: "testUser:testPass"}
 
-	handler := r.CreateServer().Handler
+	handler := r.createServer().Handler
 
 	req, err := http.NewRequest("PUT", "/", strings.NewReader("clipboardValue"))
 	if err != nil {
@@ -63,7 +64,7 @@ func TestServerCopyBasicAuth_invalidCredentials(t *testing.T) {
 	cache := memorycache.NewCache()
 	r := &serveRunner{cache: cache, basicAuth: "testUser:testPass"}
 
-	handler := r.CreateServer().Handler
+	handler := r.createServer().Handler
 
 	req, err := http.NewRequest("PUT", "/", strings.NewReader("clipboardValue"))
 	if err != nil {
@@ -90,7 +91,7 @@ func TestServerPaste(t *testing.T) {
 	r := &serveRunner{cache: cache}
 	_ = cache.Put(dataKey, []byte("clipboardValue"))
 
-	handler := r.CreateServer().Handler
+	handler := r.createServer().Handler
 
 	req, err := http.NewRequest("GET", "/", nil)
 	if err != nil {
@@ -117,7 +118,7 @@ func TestServerPasteBasicAuth_validCredentials(t *testing.T) {
 	r := &serveRunner{cache: cache, basicAuth: "testUser:testPass"}
 	_ = cache.Put(dataKey, []byte("clipboardValue"))
 
-	handler := r.CreateServer().Handler
+	handler := r.createServer().Handler
 
 	req, err := http.NewRequest("GET", "/", nil)
 	if err != nil {
@@ -145,7 +146,7 @@ func TestServerPasteBasicAuth_invalidCredentials(t *testing.T) {
 	r := &serveRunner{cache: cache, basicAuth: "testUser:testPass"}
 	_ = cache.Put(dataKey, []byte("clipboardValue"))
 
-	handler := r.CreateServer().Handler
+	handler := r.createServer().Handler
 
 	req, err := http.NewRequest("GET", "/", nil)
 	if err != nil {
