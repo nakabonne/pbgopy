@@ -98,7 +98,6 @@ func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 // It returns an error if there is more data to be read.
 func readNoMoreThan(r io.Reader, max int64) ([]byte, error) {
 	var data bytes.Buffer
-	// try to read one byte more than the max
 	n, err := data.ReadFrom(io.LimitReader(r, max+1))
 	if err != nil {
 		return nil, err
