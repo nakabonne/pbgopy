@@ -20,11 +20,13 @@ const (
 	defaultPort = 9090
 	defaultTTL  = time.Hour * 24
 
-	rootPath = "/"
-	saltPath = "/salt"
+	rootPath        = "/"
+	saltPath        = "/salt"
+	lastUpdatedPath = "/lastupdated"
 
-	dataKey = "data"
-	saltKey = "salt"
+	dataKey        = "data"
+	saltKey        = "salt"
+	lastUpdatedKey = "lastUpdated"
 )
 
 type serveRunner struct {
@@ -92,7 +94,14 @@ func (r *serveRunner) createServer() *http.Server {
 	}
 	mux.HandleFunc(rootPath, r.basicAuthHandler(r.handle))
 	mux.HandleFunc(saltPath, r.basicAuthHandler(r.handleSalt))
+	mux.HandleFunc(lastUpdatedPath, r.handleLastUpdated)
 	return server
+}
+
+func (r *serveRunner) handleLastUpdated(w http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+
+	}
 }
 
 func (r *serveRunner) handle(w http.ResponseWriter, req *http.Request) {
