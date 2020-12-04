@@ -2,6 +2,7 @@ package commands
 
 import (
 	"encoding/base64"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -10,6 +11,55 @@ import (
 
 	"github.com/nakabonne/pbgopy/cache/memorycache"
 )
+
+func TestLastUpdatedGet(t *testing.T) {
+	cache := memorycache.NewCache()
+	r := &serveRunner{cache: cache}
+
+	handler := r.createServer().Handler
+
+	req, err := http.NewRequest("PUT", "/", strings.NewReader("clipboardValue"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	// Get timestamp back
+	req, err = http.NewRequest("GET", "/lastupdated", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr = httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusOK)
+	}
+
+	v, err := cache.Get(lastUpdatedKey)
+	if err != nil {
+		t.Fatal("Cache was not populated with timestamp")
+	}
+
+	lu, ok := v.(int64)
+	if !ok {
+		t.Errorf("Could not retrieve lastUpdated timestamp from cache for type %T", v)
+	}
+
+	respValue := rr.Body.String()
+	if fmt.Sprintf("%d", lu) != respValue {
+		t.Errorf("expected timestamp %d, got %s", lu, respValue)
+	}
+}
 
 func TestServerCopy(t *testing.T) {
 	cache := memorycache.NewCache()
