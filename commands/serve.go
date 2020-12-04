@@ -140,6 +140,10 @@ func (r *serveRunner) handle(w http.ResponseWriter, req *http.Request) {
 			http.Error(w, fmt.Sprintf("Failed to cache: %v", err), http.StatusInternalServerError)
 			return
 		}
+		if err := r.cache.Put(lastUpdatedKey, time.Now().UnixNano()); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to save lastUpdated timestamp: %v", err), http.StatusInternalServerError)
+			return
+		}
 		w.WriteHeader(http.StatusOK)
 	default:
 		http.Error(w, fmt.Sprintf("Method %s is not allowed", req.Method), http.StatusMethodNotAllowed)
