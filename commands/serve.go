@@ -100,7 +100,19 @@ func (r *serveRunner) createServer() *http.Server {
 
 func (r *serveRunner) handleLastUpdated(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
-
+	case http.MethodGet:
+		lastUpdated, err := r.cache.Get(lastUpdatedKey)
+		if err != nil {
+			http.Error(w, "Failed to get lastUpdated timestamp from cache", http.StatusInternalServerError)
+			return
+		}
+		if lu, ok := lastUpdated.(int64); ok {
+			fmt.Fprintf(w, "%d", lu)
+			return
+		}
+		http.Error(w, fmt.Sprintf("The lastUpdated timestamp is unknown type: %T", lastUpdated), http.StatusInternalServerError)
+	default:
+		http.Error(w, fmt.Sprintf("Method %s is not allowed", req.Method), http.StatusMethodNotAllowed)
 	}
 }
 
