@@ -18,14 +18,14 @@ brew install nakabonne/pbgopy/pbgopy
 #### RHEL/CentOS
 
 ```
-rpm -ivh https://github.com/nakabonne/pbgopy/releases/download/v0.1.1/pbgopy_0.1.1_linux_amd64.rpm
+rpm -ivh https://github.com/nakabonne/pbgopy/releases/download/v0.2.0/pbgopy_0.2.0_linux_amd64.rpm
 ```
 
 #### Debian/Ubuntu
 
 ```
-wget https://github.com/nakabonne/pbgopy/releases/download/v0.1.1/pbgopy_0.1.1_linux_amd64.deb
-apt install ./pbgopy_0.1.1_linux_amd64.deb
+wget https://github.com/nakabonne/pbgopy/releases/download/v0.2.0/pbgopy_0.2.0linux_amd64.deb
+apt install ./pbgopy_0.2.0_linux_amd64.deb
 ```
 
 #### Arch Linux
@@ -70,24 +70,40 @@ export PBGOPY_SERVER=http://host.xz:9090
 pbgopy paste >foo.png
 ```
 
-### TTL
-You can set TTL for the cache. Give `0s` for disabling it. Default is `24h`.
-
-```bash
-pbgopy serve --ttl 10m
-```
 
 ### End-to-end encryption
-`pbgopy` comes with an ability to encrypt/decrypt with a common key, hence allows you to perform end-to-end encryption without working with external tools.
+`pbgopy` comes with a built-in ability to encrypt/decrypt with a common key, hence allows you to perform end-to-end encryption without working with external tools.
 
 ```bash
-pbgopy copy -p something <secret.txt
+pbgopy copy -p your-password <secret.txt
 ```
 
 Then decrypt with the same password:
 
 ```bash
-pbgopy paste -p something
+pbgopy paste -p your-password
+```
+
+### Authentication
+You can perform a minimum of authentication via an HTTP Basic Authentication.
+
+```bash
+pbgopy serve -a user:pass
+```
+
+```bash
+pbgopy copy -a user:pass <foo.png
+```
+
+```bash
+pbgopy paste -a user:pass >foo.png
+```
+
+### TTL
+You can set TTL for the cache. Give `0s` for disabling it. Default is `24h`.
+
+```bash
+pbgopy serve --ttl 10m
 ```
 
 ## Inspired By
