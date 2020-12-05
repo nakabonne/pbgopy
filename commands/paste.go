@@ -15,9 +15,10 @@ import (
 )
 
 type pasteRunner struct {
-	timeout   time.Duration
-	password  string
-	basicAuth string
+	timeout    time.Duration
+	password   string
+	basicAuth  string
+	maxBufSize string
 
 	stdout io.Writer
 	stderr io.Writer
@@ -38,6 +39,7 @@ func NewPasteCommand(stdout, stderr io.Writer) *cobra.Command {
 	cmd.Flags().DurationVar(&r.timeout, "timeout", 5*time.Second, "Time limit for requests")
 	cmd.Flags().StringVarP(&r.password, "password", "p", "", "Password for encryption/decryption")
 	cmd.Flags().StringVarP(&r.basicAuth, "basic-auth", "a", "", "Basic authentication, username:password")
+	cmd.Flags().StringVar(&r.maxBufSize, "max-size", "500mb", "Max data size with unit")
 	return cmd
 }
 
@@ -63,7 +65,11 @@ func (r *pasteRunner) run(_ *cobra.Command, _ []string) error {
 	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("failed request: Status %s", res.Status)
 	}
-	data, err := ioutil.ReadAll(res.Body)
+	sizeInBytes, err := datasizeToBytes(r.maxBufSize)
+	if err != nil {
+		return fmt.Errorf("failed to parse data size: %w", err)
+	}
+	data, err := readNoMoreThan(res.Body, sizeInBytes)
 	if err != nil {
 		return fmt.Errorf("failed to read the response body: %w", err)
 	}
