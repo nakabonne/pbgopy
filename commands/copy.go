@@ -53,13 +53,24 @@ func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 		return fmt.Errorf("put the pbgopy server's address into %s environment variable", pbgopyServerEnv)
 	}
 
-	sizeInBytes, err := datasizeToBytes(r.maxBufSize)
-	if err != nil {
-		return fmt.Errorf("failed to parse data size: %w", err)
-	}
-	data, err := readNoMoreThan(os.Stdin, sizeInBytes)
-	if err != nil {
-		return fmt.Errorf("failed to read from STDIN: %w", err)
+	var data []byte
+
+	if r.fromClipboard {
+		clipboardData, err := clipboard.ReadAll()
+		if err != nil {
+			return err
+		}
+		data = []byte(clipboardData)
+
+	} else {
+		sizeInBytes, err := datasizeToBytes(r.maxBufSize)
+		if err != nil {
+			return fmt.Errorf("failed to parse data size: %w", err)
+		}
+		data, err = readNoMoreThan(os.Stdin, sizeInBytes)
+		if err != nil {
+			return fmt.Errorf("failed to read from STDIN: %w", err)
+		}
 	}
 
 	client := &http.Client{
