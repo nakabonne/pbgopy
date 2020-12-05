@@ -10,16 +10,18 @@ import (
 	"strings"
 	"time"
 
+	"github.com/atotto/clipboard"
 	"github.com/spf13/cobra"
 
 	pbcrypto "github.com/nakabonne/pbgopy/crypto"
 )
 
 type copyRunner struct {
-	timeout    time.Duration
-	password   string
-	basicAuth  string
-	maxBufSize string
+	timeout       time.Duration
+	password      string
+	basicAuth     string
+	maxBufSize    string
+	fromClipboard bool
 
 	stdout io.Writer
 	stderr io.Writer
@@ -41,6 +43,7 @@ func NewCopyCommand(stdout, stderr io.Writer) *cobra.Command {
 	cmd.Flags().StringVarP(&r.password, "password", "p", "", "Password for encryption/decryption")
 	cmd.Flags().StringVarP(&r.basicAuth, "basic-auth", "a", "", "Basic authentication, username:password")
 	cmd.Flags().StringVar(&r.maxBufSize, "max-size", "500mb", "Max data size with unit")
+	cmd.Flags().BoolVarP(&r.fromClipboard, "from-clipboard", "c", false, "Put the data stored at clipboard into pbgopy server")
 	return cmd
 }
 
