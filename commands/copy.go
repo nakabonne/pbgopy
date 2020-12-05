@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/c2h5oh/datasize"
 	"github.com/spf13/cobra"
 
 	pbcrypto "github.com/nakabonne/pbgopy/crypto"
+	"github.com/nakabonne/pbgopy/datasize"
 )
 
 type copyRunner struct {
