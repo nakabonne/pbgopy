@@ -24,7 +24,7 @@ rpm -ivh https://github.com/nakabonne/pbgopy/releases/download/v0.2.0/pbgopy_0.2
 #### Debian/Ubuntu
 
 ```
-wget https://github.com/nakabonne/pbgopy/releases/download/v0.2.0/pbgopy_0.2.0linux_amd64.deb
+wget https://github.com/nakabonne/pbgopy/releases/download/v0.2.0/pbgopy_0.2.0_linux_amd64.deb
 apt install ./pbgopy_0.2.0_linux_amd64.deb
 ```
 
