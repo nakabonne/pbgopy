@@ -34,8 +34,6 @@ type serveRunner struct {
 	ttl       time.Duration
 	basicAuth string
 
-	// random data used as an additional input for hashing data.
-	salt   []byte
 	cache  cache.Cache
 	stdout io.Writer
 	stderr io.Writer
@@ -97,7 +95,6 @@ func (r *serveRunner) newServer() *http.Server {
 }
 
 func (r *serveRunner) handle(w http.ResponseWriter, req *http.Request) {
-
 	switch req.Method {
 	case http.MethodGet:
 		data, err := r.cache.Get(dataCacheKey)

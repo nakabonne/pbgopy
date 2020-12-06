@@ -70,7 +70,7 @@ func (b ByteSize) EBytes() float64 {
 func (b ByteSize) String() string {
 	switch {
 	case b == 0:
-		return fmt.Sprint("0B")
+		return "0B"
 	case b%EB == 0:
 		return fmt.Sprintf("%dEB", b/EB)
 	case b%PB == 0:
@@ -134,7 +134,7 @@ ParseLoop:
 				goto Overflow
 			}
 
-			c = c - '0'
+			c -= '0'
 			val *= 10
 
 			if val > val+uint64(c) {

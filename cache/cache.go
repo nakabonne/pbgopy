@@ -16,13 +16,9 @@
 // store content on a pbgopy server.
 package cache
 
-import (
-	"errors"
-)
+import "errors"
 
-var (
-	ErrNotFound = errors.New("not found")
-)
+var ErrNotFound = errors.New("not found")
 
 // Getter wraps a method to read from cache.
 type Getter interface {
@@ -44,43 +40,4 @@ type Cache interface {
 	Getter
 	Putter
 	Deleter
-}
-
-type multiGetter struct {
-	getters []Getter
-}
-
-// MultiGetter combines a lit of getters into a single getter.
-func MultiGetter(getters ...Getter) Getter {
-	all := make([]Getter, 0, len(getters))
-	for _, r := range getters {
-		if mg, ok := r.(*multiGetter); ok {
-			all = append(all, mg.getters...)
-		} else {
-			all = append(all, r)
-		}
-	}
-	return &multiGetter{
-		getters: all,
-	}
-}
-
-func (mg *multiGetter) Get(key interface{}) (interface{}, error) {
-	if len(mg.getters) == 0 {
-		return nil, ErrNotFound
-	}
-	if len(mg.getters) == 1 {
-		return mg.getters[0].Get(key)
-	}
-	var firstErr error
-	for i := range mg.getters {
-		e, err := mg.getters[i].Get(key)
-		if firstErr == nil && err != nil {
-			firstErr = err
-		}
-		if err == nil {
-			return e, nil
-		}
-	}
-	return nil, firstErr
 }
