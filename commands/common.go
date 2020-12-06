@@ -15,9 +15,10 @@ const pbgopyServerEnv = "PBGOPY_SERVER"
 
 // addBasicAuthHeader adds a Basic Auth Header if the auth flag is set.
 func addBasicAuthHeader(req *http.Request, basicAuth string) {
-	if basicAuth != "" {
-		req.Header.Add("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(basicAuth)))
+	if basicAuth == "" {
+		return
 	}
+	req.Header.Add("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(basicAuth)))
 }
 
 // readNoMoreThan reads at most, max bytes from reader.

@@ -3,11 +3,10 @@ package crypto
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	cryrand "crypto/rand"
+	"crypto/rand"
 	"crypto/sha256"
 	"fmt"
-	"io"
-	"math/rand"
+	mrand "math/rand"
 	"time"
 
 	"golang.org/x/crypto/pbkdf2"
@@ -29,8 +28,9 @@ func Encrypt(password string, salt, data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	nonce, err := getNonce(gcm.NonceSize())
-	if err != nil {
+
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err := rand.Read(nonce); err != nil {
 		return nil, err
 	}
 
@@ -59,27 +59,14 @@ func Decrypt(password string, salt, encryptedData []byte) ([]byte, error) {
 	return gcm.Open(nil, nonce, ciphertext, nil)
 }
 
-const charset = "abcdefghijklmnopqrstuvwxyz" +
-	"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-
-var seededRand = rand.New(rand.NewSource(time.Now().UnixNano()))
+const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 // RandomBytes yields a random bytes with the given length.
 func RandomBytes(length int) []byte {
+	mrand.Seed(time.Now().UnixNano())
 	b := make([]byte, length)
 	for i := range b {
-		b[i] = charset[seededRand.Intn(len(charset))]
+		b[i] = charset[mrand.Intn(len(charset))]
 	}
 	return b
-}
-
-func getNonce(length int) ([]byte, error) {
-	nonce := make([]byte, length)
-
-	_, err := io.ReadFull(cryrand.Reader, nonce)
-	if err != nil {
-		return nil, err
-	}
-
-	return nonce, nil
 }
