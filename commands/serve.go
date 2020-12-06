@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"io"
@@ -14,7 +15,6 @@ import (
 
 	"github.com/nakabonne/pbgopy/cache"
 	"github.com/nakabonne/pbgopy/cache/memorycache"
-	pbcrypto "github.com/nakabonne/pbgopy/crypto"
 )
 
 const (
@@ -150,7 +150,11 @@ func (r *serveRunner) handleSalt(w http.ResponseWriter, req *http.Request) {
 		}
 		http.Error(w, fmt.Sprintf("The cached data is unknown type: %T", salt), http.StatusInternalServerError)
 	case http.MethodPut:
-		salt := pbcrypto.RandomBytes(128)
+		salt := make([]byte, 128)
+		if _, err := rand.Read(salt); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to make salt: %v", err), http.StatusInternalServerError)
+			return
+		}
 		if err := r.cache.Put(saltCacheKey, salt); err != nil {
 			http.Error(w, fmt.Sprintf("Failed to cache: %v", err), http.StatusInternalServerError)
 			return

@@ -6,8 +6,6 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"fmt"
-	mrand "math/rand"
-	"time"
 
 	"golang.org/x/crypto/pbkdf2"
 )
@@ -57,16 +55,4 @@ func Decrypt(password string, salt, encryptedData []byte) ([]byte, error) {
 	ciphertext := encryptedData[nonceSize:]
 
 	return gcm.Open(nil, nonce, ciphertext, nil)
-}
-
-const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-
-// RandomBytes yields a random bytes with the given length.
-func RandomBytes(length int) []byte {
-	mrand.Seed(time.Now().UnixNano())
-	b := make([]byte, length)
-	for i := range b {
-		b[i] = charset[mrand.Intn(len(charset))]
-	}
-	return b
 }
