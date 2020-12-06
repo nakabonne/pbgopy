@@ -24,9 +24,9 @@ const (
 	saltPath        = "/salt"
 	lastUpdatedPath = "/lastupdated"
 
-	dataKey        = "data"
-	saltKey        = "salt"
-	lastUpdatedKey = "lastUpdated"
+	dataCacheKey        = "data"
+	saltCacheKey        = "salt"
+	lastUpdatedCacheKey = "lastUpdated"
 )
 
 type serveRunner struct {
@@ -69,8 +69,7 @@ func (r *serveRunner) run(_ *cobra.Command, _ []string) error {
 		r.cache = memorycache.NewTTLCache(ctx, r.ttl, r.ttl)
 	}
 
-	server := r.createServer()
-
+	server := r.newServer()
 	defer func() {
 		log.Println("Start gracefully shutting down the server")
 		if err := server.Shutdown(ctx); err != nil {
@@ -85,8 +84,7 @@ func (r *serveRunner) run(_ *cobra.Command, _ []string) error {
 	return nil
 }
 
-func (r *serveRunner) createServer() *http.Server {
-	// Start HTTP server
+func (r *serveRunner) newServer() *http.Server {
 	mux := http.NewServeMux()
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", r.port),
@@ -94,33 +92,15 @@ func (r *serveRunner) createServer() *http.Server {
 	}
 	mux.HandleFunc(rootPath, r.basicAuthHandler(r.handle))
 	mux.HandleFunc(saltPath, r.basicAuthHandler(r.handleSalt))
-	mux.HandleFunc(lastUpdatedPath, r.handleLastUpdated)
+	mux.HandleFunc(lastUpdatedPath, r.basicAuthHandler(r.handleLastUpdated))
 	return server
-}
-
-func (r *serveRunner) handleLastUpdated(w http.ResponseWriter, req *http.Request) {
-	switch req.Method {
-	case http.MethodGet:
-		lastUpdated, err := r.cache.Get(lastUpdatedKey)
-		if err != nil {
-			http.Error(w, "Failed to get lastUpdated timestamp from cache", http.StatusInternalServerError)
-			return
-		}
-		if lu, ok := lastUpdated.(int64); ok {
-			fmt.Fprintf(w, "%d", lu)
-			return
-		}
-		http.Error(w, fmt.Sprintf("The lastUpdated timestamp is unknown type: %T", lastUpdated), http.StatusInternalServerError)
-	default:
-		http.Error(w, fmt.Sprintf("Method %s is not allowed", req.Method), http.StatusMethodNotAllowed)
-	}
 }
 
 func (r *serveRunner) handle(w http.ResponseWriter, req *http.Request) {
 
 	switch req.Method {
 	case http.MethodGet:
-		data, err := r.cache.Get(dataKey)
+		data, err := r.cache.Get(dataCacheKey)
 		if err != nil {
 			http.Error(w, "Failed to get data from cache", http.StatusInternalServerError)
 			return
@@ -136,11 +116,11 @@ func (r *serveRunner) handle(w http.ResponseWriter, req *http.Request) {
 			http.Error(w, "Bad request body", http.StatusBadRequest)
 			return
 		}
-		if err := r.cache.Put(dataKey, body); err != nil {
+		if err := r.cache.Put(dataCacheKey, body); err != nil {
 			http.Error(w, fmt.Sprintf("Failed to cache: %v", err), http.StatusInternalServerError)
 			return
 		}
-		if err := r.cache.Put(lastUpdatedKey, time.Now().UnixNano()); err != nil {
+		if err := r.cache.Put(lastUpdatedCacheKey, time.Now().UnixNano()); err != nil {
 			http.Error(w, fmt.Sprintf("Failed to save lastUpdated timestamp: %v", err), http.StatusInternalServerError)
 			return
 		}
@@ -153,7 +133,7 @@ func (r *serveRunner) handle(w http.ResponseWriter, req *http.Request) {
 func (r *serveRunner) handleSalt(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case http.MethodGet:
-		salt, err := r.cache.Get(saltKey)
+		salt, err := r.cache.Get(saltCacheKey)
 		if err != nil {
 			http.Error(w, "Failed to get salt from cache", http.StatusInternalServerError)
 			return
@@ -165,11 +145,29 @@ func (r *serveRunner) handleSalt(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, fmt.Sprintf("The cached data is unknown type: %T", salt), http.StatusInternalServerError)
 	case http.MethodPut:
 		salt := pbcrypto.RandomBytes(128)
-		if err := r.cache.Put(saltKey, salt); err != nil {
+		if err := r.cache.Put(saltCacheKey, salt); err != nil {
 			http.Error(w, fmt.Sprintf("Failed to cache: %v", err), http.StatusInternalServerError)
 			return
 		}
 		w.Write(salt)
+	default:
+		http.Error(w, fmt.Sprintf("Method %s is not allowed", req.Method), http.StatusMethodNotAllowed)
+	}
+}
+
+func (r *serveRunner) handleLastUpdated(w http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+	case http.MethodGet:
+		lastUpdated, err := r.cache.Get(lastUpdatedCacheKey)
+		if err != nil {
+			http.Error(w, "Failed to get lastUpdated timestamp from cache", http.StatusInternalServerError)
+			return
+		}
+		if lu, ok := lastUpdated.(int64); ok {
+			fmt.Fprintf(w, "%d", lu)
+			return
+		}
+		http.Error(w, fmt.Sprintf("The lastUpdated timestamp is unknown type: %T", lastUpdated), http.StatusInternalServerError)
 	default:
 		http.Error(w, fmt.Sprintf("Method %s is not allowed", req.Method), http.StatusMethodNotAllowed)
 	}

@@ -16,7 +16,7 @@ func TestLastUpdatedGet(t *testing.T) {
 	cache := memorycache.NewCache()
 	r := &serveRunner{cache: cache}
 
-	handler := r.createServer().Handler
+	handler := r.newServer().Handler
 
 	req, err := http.NewRequest("PUT", "/", strings.NewReader("clipboardValue"))
 	if err != nil {
@@ -45,7 +45,7 @@ func TestLastUpdatedGet(t *testing.T) {
 			status, http.StatusOK)
 	}
 
-	v, err := cache.Get(lastUpdatedKey)
+	v, err := cache.Get(lastUpdatedCacheKey)
 	if err != nil {
 		t.Fatal("Cache was not populated with timestamp")
 	}
@@ -65,7 +65,7 @@ func TestServerCopy(t *testing.T) {
 	cache := memorycache.NewCache()
 	r := &serveRunner{cache: cache}
 
-	handler := r.createServer().Handler
+	handler := r.newServer().Handler
 
 	req, err := http.NewRequest("PUT", "/", strings.NewReader("clipboardValue"))
 	if err != nil {
@@ -80,7 +80,7 @@ func TestServerCopy(t *testing.T) {
 			status, http.StatusOK)
 	}
 
-	if v, err := cache.Get(dataKey); err != nil || !reflect.DeepEqual(v.([]byte), []byte("clipboardValue")) {
+	if v, err := cache.Get(dataCacheKey); err != nil || !reflect.DeepEqual(v.([]byte), []byte("clipboardValue")) {
 		t.Errorf("Cache was not populated with clipboard: got value: %s err: %v", string(v.([]byte)), err)
 	}
 }
@@ -89,7 +89,7 @@ func TestServerCopyBasicAuth_validCredentials(t *testing.T) {
 	cache := memorycache.NewCache()
 	r := &serveRunner{cache: cache, basicAuth: "testUser:testPass"}
 
-	handler := r.createServer().Handler
+	handler := r.newServer().Handler
 
 	req, err := http.NewRequest("PUT", "/", strings.NewReader("clipboardValue"))
 	if err != nil {
@@ -105,7 +105,7 @@ func TestServerCopyBasicAuth_validCredentials(t *testing.T) {
 			status, http.StatusOK)
 	}
 
-	if v, err := cache.Get(dataKey); err != nil || !reflect.DeepEqual(v.([]byte), []byte("clipboardValue")) {
+	if v, err := cache.Get(dataCacheKey); err != nil || !reflect.DeepEqual(v.([]byte), []byte("clipboardValue")) {
 		t.Errorf("Cache was not populated with clipboard: got value: %s err: %v", string(v.([]byte)), err)
 	}
 }
@@ -114,7 +114,7 @@ func TestServerCopyBasicAuth_invalidCredentials(t *testing.T) {
 	cache := memorycache.NewCache()
 	r := &serveRunner{cache: cache, basicAuth: "testUser:testPass"}
 
-	handler := r.createServer().Handler
+	handler := r.newServer().Handler
 
 	req, err := http.NewRequest("PUT", "/", strings.NewReader("clipboardValue"))
 	if err != nil {
@@ -130,7 +130,7 @@ func TestServerCopyBasicAuth_invalidCredentials(t *testing.T) {
 			status, http.StatusUnauthorized)
 	}
 
-	_, err = cache.Get(dataKey)
+	_, err = cache.Get(dataCacheKey)
 	if err == nil {
 		t.Errorf("expected an error, got none")
 	}
@@ -139,9 +139,9 @@ func TestServerCopyBasicAuth_invalidCredentials(t *testing.T) {
 func TestServerPaste(t *testing.T) {
 	cache := memorycache.NewCache()
 	r := &serveRunner{cache: cache}
-	_ = cache.Put(dataKey, []byte("clipboardValue"))
+	_ = cache.Put(dataCacheKey, []byte("clipboardValue"))
 
-	handler := r.createServer().Handler
+	handler := r.newServer().Handler
 
 	req, err := http.NewRequest("GET", "/", nil)
 	if err != nil {
@@ -166,9 +166,9 @@ func TestServerPaste(t *testing.T) {
 func TestServerPasteBasicAuth_validCredentials(t *testing.T) {
 	cache := memorycache.NewCache()
 	r := &serveRunner{cache: cache, basicAuth: "testUser:testPass"}
-	_ = cache.Put(dataKey, []byte("clipboardValue"))
+	_ = cache.Put(dataCacheKey, []byte("clipboardValue"))
 
-	handler := r.createServer().Handler
+	handler := r.newServer().Handler
 
 	req, err := http.NewRequest("GET", "/", nil)
 	if err != nil {
@@ -194,9 +194,9 @@ func TestServerPasteBasicAuth_validCredentials(t *testing.T) {
 func TestServerPasteBasicAuth_invalidCredentials(t *testing.T) {
 	cache := memorycache.NewCache()
 	r := &serveRunner{cache: cache, basicAuth: "testUser:testPass"}
-	_ = cache.Put(dataKey, []byte("clipboardValue"))
+	_ = cache.Put(dataCacheKey, []byte("clipboardValue"))
 
-	handler := r.createServer().Handler
+	handler := r.newServer().Handler
 
 	req, err := http.NewRequest("GET", "/", nil)
 	if err != nil {
