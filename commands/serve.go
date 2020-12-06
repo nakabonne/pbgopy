@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -98,6 +99,10 @@ func (r *serveRunner) handle(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case http.MethodGet:
 		data, err := r.cache.Get(dataCacheKey)
+		if errors.Is(err, cache.ErrNotFound) {
+			http.Error(w, "The data not found", http.StatusNotFound)
+			return
+		}
 		if err != nil {
 			http.Error(w, "Failed to get data from cache", http.StatusInternalServerError)
 			return
@@ -131,6 +136,10 @@ func (r *serveRunner) handleSalt(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case http.MethodGet:
 		salt, err := r.cache.Get(saltCacheKey)
+		if errors.Is(err, cache.ErrNotFound) {
+			http.Error(w, "The salt not found", http.StatusNotFound)
+			return
+		}
 		if err != nil {
 			http.Error(w, "Failed to get salt from cache", http.StatusInternalServerError)
 			return
@@ -156,6 +165,10 @@ func (r *serveRunner) handleLastUpdated(w http.ResponseWriter, req *http.Request
 	switch req.Method {
 	case http.MethodGet:
 		lastUpdated, err := r.cache.Get(lastUpdatedCacheKey)
+		if errors.Is(err, cache.ErrNotFound) {
+			http.Error(w, "The lastUpdated not found", http.StatusNotFound)
+			return
+		}
 		if err != nil {
 			http.Error(w, "Failed to get lastUpdated timestamp from cache", http.StatusInternalServerError)
 			return
