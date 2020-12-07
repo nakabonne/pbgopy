@@ -16,8 +16,10 @@ import (
 )
 
 type copyRunner struct {
-	timeout  time.Duration
-	password string
+	timeout    time.Duration
+	password   string
+	basicAuth  string
+	maxBufSize string
 
 	stdout io.Writer
 	stderr io.Writer
@@ -37,6 +39,8 @@ func NewCopyCommand(stdout, stderr io.Writer) *cobra.Command {
 	}
 	cmd.Flags().DurationVar(&r.timeout, "timeout", 5*time.Second, "Time limit for requests")
 	cmd.Flags().StringVarP(&r.password, "password", "p", "", "Password for encryption/decryption")
+	cmd.Flags().StringVarP(&r.basicAuth, "basic-auth", "a", "", "Basic authentication, username:password")
+	cmd.Flags().StringVar(&r.maxBufSize, "max-size", "500mb", "Max data size with unit")
 	return cmd
 }
 
@@ -45,7 +49,12 @@ func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 	if address == "" {
 		return fmt.Errorf("put the pbgopy server's address into %s environment variable", pbgopyServerEnv)
 	}
-	data, err := ioutil.ReadAll(os.Stdin)
+
+	sizeInBytes, err := datasizeToBytes(r.maxBufSize)
+	if err != nil {
+		return fmt.Errorf("failed to parse data size: %w", err)
+	}
+	data, err := readNoMoreThan(os.Stdin, sizeInBytes)
 	if err != nil {
 		return fmt.Errorf("failed to read from STDIN: %w", err)
 	}
@@ -66,7 +75,7 @@ func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 	}
 
 	if password != "" {
-		salt, err := regenerateSalt(client, address)
+		salt, err := r.regenerateSalt(client, address)
 		if err != nil {
 			return fmt.Errorf("failed to get salt: %w", err)
 		}
@@ -80,35 +89,22 @@ func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to make request: %w", err)
 	}
-	if _, err := client.Do(req); err != nil {
+	addBasicAuthHeader(req, r.basicAuth)
+
+	res, err := client.Do(req)
+	if err != nil {
 		return fmt.Errorf("failed to issue request: %w", err)
 	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed request: Status %s", res.Status)
+	}
+
 	return nil
 }
 
-func getPasswordFromEnv(filepath string) (string, error) {
-	file, err := os.Open(filepath)
-	if err != nil {
-		return "", fmt.Errorf("failed to open password file: %w", err)
-	}
-
-	fileInfo, err := file.Stat()
-	if err != nil {
-		return "", fmt.Errorf("unable to get file information: %w", err)
-	}
-
-	passBuf := make([]byte, fileInfo.Size())
-
-	_, err = io.ReadFull(file, passBuf)
-	if err != nil {
-		return "", fmt.Errorf("unable to read file: %w", err)
-	}
-
-	return string(passBuf), nil
-}
-
 // regenerateSalt lets the server regenerate the salt and gives back the new one.
-func regenerateSalt(client *http.Client, address string) ([]byte, error) {
+func (r *copyRunner) regenerateSalt(client *http.Client, address string) ([]byte, error) {
 	if strings.HasSuffix(address, "/") {
 		address = address[:len(address)-1]
 	}
@@ -116,6 +112,7 @@ func regenerateSalt(client *http.Client, address string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to make request: %w", err)
 	}
+	addBasicAuthHeader(req, r.basicAuth)
 	res, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to issue request: %w", err)

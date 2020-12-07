@@ -6,3 +6,8 @@ This product contains a modified part of pipe, distributed by pipe-cd:
   * License: https://github.com/pipe-cd/pipe/blob/master/LICENSE (Apache License v2.0)
   * Homepage: https://github.com/pipe-cd/pipe
 
+This product contains a modified part of datasize, distributed by c2h5oh:
+
+  * License: https://github.com/c2h5oh/datasize/blob/master/LICENSE (MIT)
+  * Homepage: https://github.com/c2h5oh/datasize
+
