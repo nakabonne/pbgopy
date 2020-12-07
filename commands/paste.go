@@ -69,7 +69,7 @@ func (r *pasteRunner) run(_ *cobra.Command, _ []string) error {
 		}
 	}
 
-	if len(password) != 0 {
+	if password != "" {
 		salt, err := getSalt(client, address)
 		if err != nil {
 			return fmt.Errorf("failed to get salt: %w", err)

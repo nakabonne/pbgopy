@@ -41,7 +41,6 @@ func NewCopyCommand(stdout, stderr io.Writer) *cobra.Command {
 }
 
 func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
-
 	address := os.Getenv(pbgopyServerEnv)
 	if address == "" {
 		return fmt.Errorf("put the pbgopy server's address into %s environment variable", pbgopyServerEnv)
@@ -66,7 +65,7 @@ func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 		}
 	}
 
-	if len(password) != 0 {
+	if password != "" {
 		salt, err := regenerateSalt(client, address)
 		if err != nil {
 			return fmt.Errorf("failed to get salt: %w", err)
@@ -87,8 +86,8 @@ func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 	return nil
 }
 
-func getPasswordFromEnv(fileLoc string) (string, error) {
-	file, err := os.Open(fileLoc)
+func getPasswordFromEnv(filepath string) (string, error) {
+	file, err := os.Open(filepath)
 	if err != nil {
 		return "", fmt.Errorf("failed to open password file: %w", err)
 	}
