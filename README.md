@@ -36,6 +36,12 @@ AUR package is available: [pbgopy](https://aur.archlinux.org/packages/pbgopy/)
 yay pbgopy
 ```
 
+#### Nix
+
+```
+nix-shell -p nixpkgs.pbgopy
+```
+
 #### Go
 
 ```
