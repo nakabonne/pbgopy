@@ -53,7 +53,7 @@ func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 		return fmt.Errorf("put the pbgopy server's address into %s environment variable", pbgopyServerEnv)
 	}
 
-	var source io.Reader
+	var source io.Reader = os.Stdin
 
 	if r.fromClipboard {
 		clipboardData, err := clipboard.ReadAll()
@@ -61,8 +61,6 @@ func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 			return err
 		}
 		source = strings.NewReader(clipboardData)
-	} else {
-		source = os.Stdin
 	}
 
 	sizeInBytes, err := datasizeToBytes(r.maxBufSize)
