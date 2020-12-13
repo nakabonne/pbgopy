@@ -211,7 +211,6 @@ Overflow:
 
 SyntaxError:
 	*b = 0
-fmt.Println("Returning syntax error")
 	return &strconv.NumError{fnUnmarshalText, string(t0), strconv.ErrSyntax}
 
 BitsError:

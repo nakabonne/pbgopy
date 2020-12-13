@@ -68,7 +68,7 @@ func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 	if r.password != "" {
 		password = r.password
 	} else if os.Getenv(pbgopyPasswordFileEnv) != "" {
-		password, err = getPasswordFromEnv(os.Getenv(pbgopyPasswordFileEnv))
+		password, err = getPasswordFromFile(os.Getenv(pbgopyPasswordFileEnv))
 		if err != nil {
 			return err
 		}
