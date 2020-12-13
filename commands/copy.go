@@ -43,7 +43,7 @@ func NewCopyCommand(stdout, stderr io.Writer) *cobra.Command {
 	cmd.Flags().StringVarP(&r.password, "password", "p", "", "Password for encryption/decryption")
 	cmd.Flags().StringVarP(&r.basicAuth, "basic-auth", "a", "", "Basic authentication, username:password")
 	cmd.Flags().StringVar(&r.maxBufSize, "max-size", "500mb", "Max data size with unit")
-	cmd.Flags().BoolVarP(&r.fromClipboard, "from-clipboard", "c", false, "Put the data stored at clipboard into pbgopy server")
+	cmd.Flags().BoolVarP(&r.fromClipboard, "from-clipboard", "c", false, "Put the data stored at local clipboard into pbgopy server")
 	return cmd
 }
 

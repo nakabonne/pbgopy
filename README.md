@@ -18,14 +18,14 @@ brew install nakabonne/pbgopy/pbgopy
 #### RHEL/CentOS
 
 ```
-rpm -ivh https://github.com/nakabonne/pbgopy/releases/download/v0.2.0/pbgopy_0.2.0_linux_amd64.rpm
+rpm -ivh https://github.com/nakabonne/pbgopy/releases/download/v0.2.1/pbgopy_0.2.1_linux_amd64.rpm
 ```
 
 #### Debian/Ubuntu
 
 ```
-wget https://github.com/nakabonne/pbgopy/releases/download/v0.2.0/pbgopy_0.2.0_linux_amd64.deb
-apt install ./pbgopy_0.2.0_linux_amd64.deb
+wget https://github.com/nakabonne/pbgopy/releases/download/v0.2.1/pbgopy_0.2.1_linux_amd64.deb
+apt install ./pbgopy_0.2.1_linux_amd64.deb
 ```
 
 #### Arch Linux
@@ -76,9 +76,10 @@ export PBGOPY_SERVER=http://host.xz:9090
 pbgopy paste >foo.png
 ```
 
+## Options
 
 ### End-to-end encryption
-`pbgopy` comes with a built-in ability to encrypt/decrypt with a common key, hence allows you to perform end-to-end encryption without working with external tools.
+`pbgopy` comes with a built-in ability to encrypt/decrypt with a common key derived from password. Hence allows you to perform end-to-end encryption without working with external tools.
 
 ```bash
 pbgopy copy -p your-password <secret.txt
@@ -90,8 +91,10 @@ Then decrypt with the same password:
 pbgopy paste -p your-password
 ```
 
+Alternatively, the `PBGOPY_PASSWORD_FILE` environment variable is available for automating password entry.
+
 ### Authentication
-You can perform a minimum of authentication via an HTTP Basic Authentication.
+HTTP Basic Authentication is available with `-a` flag.
 
 ```bash
 pbgopy serve -a user:pass
@@ -110,6 +113,13 @@ You can set TTL for the cache. Give `0s` for disabling it. Default is `24h`.
 
 ```bash
 pbgopy serve --ttl 10m
+```
+
+### From clipboard on your OS
+You can put the data stored at the clipboard on your OS into pbgopy server.
+
+```bash
+pbgopy copy -c
 ```
 
 ## Inspired By
