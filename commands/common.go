@@ -7,11 +7,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 
 	"github.com/nakabonne/pbgopy/datasize"
 )
 
 const pbgopyServerEnv = "PBGOPY_SERVER"
+const pbgopyPasswordFileEnv = "PBGOPY_PASSWORD_FILE"
 
 // addBasicAuthHeader adds a Basic Auth Header if the auth flag is set.
 func addBasicAuthHeader(req *http.Request, basicAuth string) {
@@ -42,4 +44,27 @@ func datasizeToBytes(ds string) (int64, error) {
 		return 0, errors.Unwrap(err)
 	}
 	return int64(maxBufSizeBytes.Bytes()), nil
+}
+
+// getPasswordFromEnv returns the password stored in the provided
+// filepath
+func getPasswordFromEnv(filepath string) (string, error) {
+	file, err := os.Open(filepath)
+	if err != nil {
+		return "", fmt.Errorf("failed to open password file: %w", err)
+	}
+
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return "", fmt.Errorf("unable to get file information: %w", err)
+	}
+
+	passBuf := make([]byte, fileInfo.Size())
+
+	_, err = io.ReadFull(file, passBuf)
+	if err != nil {
+		return "", fmt.Errorf("unable to read file: %w", err)
+	}
+
+	return string(passBuf), nil
 }

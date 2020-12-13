@@ -62,12 +62,24 @@ func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 	client := &http.Client{
 		Timeout: r.timeout,
 	}
+
+	var password string
+
 	if r.password != "" {
+		password = r.password
+	} else if os.Getenv(pbgopyPasswordFileEnv) != "" {
+		password, err = getPasswordFromEnv(os.Getenv(pbgopyPasswordFileEnv))
+		if err != nil {
+			return err
+		}
+	}
+
+	if password != "" {
 		salt, err := r.regenerateSalt(client, address)
 		if err != nil {
 			return fmt.Errorf("failed to get salt: %w", err)
 		}
-		data, err = pbcrypto.Encrypt(r.password, salt, data)
+		data, err = pbcrypto.Encrypt(password, salt, data)
 		if err != nil {
 			return fmt.Errorf("failed to encrypt the data: %w", err)
 		}

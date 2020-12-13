@@ -95,6 +95,9 @@ func TestDatasizeToBytes(t *testing.T) {
 
 	for _, tc := range testCases {
 		sizeInBytes, err := datasizeToBytes(tc.datasize)
+
+        t.Log(err)
+
 		assert.Equal(t, tc.err, err)
 		assert.Equal(t, tc.sizeInBytes, sizeInBytes)
 	}
