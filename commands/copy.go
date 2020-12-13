@@ -10,16 +10,18 @@ import (
 	"strings"
 	"time"
 
+	"github.com/atotto/clipboard"
 	"github.com/spf13/cobra"
 
 	pbcrypto "github.com/nakabonne/pbgopy/crypto"
 )
 
 type copyRunner struct {
-	timeout    time.Duration
-	password   string
-	basicAuth  string
-	maxBufSize string
+	timeout       time.Duration
+	password      string
+	basicAuth     string
+	maxBufSize    string
+	fromClipboard bool
 
 	stdout io.Writer
 	stderr io.Writer
@@ -41,6 +43,7 @@ func NewCopyCommand(stdout, stderr io.Writer) *cobra.Command {
 	cmd.Flags().StringVarP(&r.password, "password", "p", "", "Password for encryption/decryption")
 	cmd.Flags().StringVarP(&r.basicAuth, "basic-auth", "a", "", "Basic authentication, username:password")
 	cmd.Flags().StringVar(&r.maxBufSize, "max-size", "500mb", "Max data size with unit")
+	cmd.Flags().BoolVarP(&r.fromClipboard, "from-clipboard", "c", false, "Put the data stored at clipboard into pbgopy server")
 	return cmd
 }
 
@@ -50,13 +53,23 @@ func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 		return fmt.Errorf("put the pbgopy server's address into %s environment variable", pbgopyServerEnv)
 	}
 
+	var source io.Reader = os.Stdin
+
+	if r.fromClipboard {
+		clipboardData, err := clipboard.ReadAll()
+		if err != nil {
+			return err
+		}
+		source = strings.NewReader(clipboardData)
+	}
+
 	sizeInBytes, err := datasizeToBytes(r.maxBufSize)
 	if err != nil {
 		return fmt.Errorf("failed to parse data size: %w", err)
 	}
-	data, err := readNoMoreThan(os.Stdin, sizeInBytes)
+	data, err := readNoMoreThan(source, sizeInBytes)
 	if err != nil {
-		return fmt.Errorf("failed to read from STDIN: %w", err)
+		return fmt.Errorf("failed to read from source: %w", err)
 	}
 
 	client := &http.Client{
