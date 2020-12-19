@@ -15,8 +15,10 @@ const (
 	keyLength             = 32
 )
 
+var hashFunc = sha256.New
+
 func Encrypt(password string, salt, data []byte) ([]byte, error) {
-	key := pbkdf2.Key([]byte(password), salt, defaultIterationCount, keyLength, sha256.New)
+	key := pbkdf2.Key([]byte(password), salt, defaultIterationCount, keyLength, hashFunc)
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
@@ -37,7 +39,7 @@ func Encrypt(password string, salt, data []byte) ([]byte, error) {
 }
 
 func Decrypt(password string, salt, encryptedData []byte) ([]byte, error) {
-	key := pbkdf2.Key([]byte(password), salt, defaultIterationCount, keyLength, sha256.New)
+	key := pbkdf2.Key([]byte(password), salt, defaultIterationCount, keyLength, hashFunc)
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
