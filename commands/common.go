@@ -72,14 +72,14 @@ func getKey(password, symmetricKeyFile string, saltFunc func() ([]byte, error)) 
 		if err != nil {
 			return nil, fmt.Errorf("failed to read %s: %w", symmetricKeyFile, err)
 		}
-		return key, nil
+		return bytes.TrimSpace(key), nil
 	}
 	if os.Getenv(pbgopySymmetricKeyFileEnv) != "" {
 		key, err := ioutil.ReadFile(os.Getenv(pbgopySymmetricKeyFileEnv))
 		if err != nil {
 			return nil, fmt.Errorf("failed to read %s: %w", symmetricKeyFile, err)
 		}
-		return key, nil
+		return bytes.TrimSpace(key), nil
 	}
 	return nil, nil
 }
