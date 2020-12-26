@@ -17,9 +17,12 @@ const (
 
 var hashFunc = sha256.New
 
-func Encrypt(password string, salt, data []byte) ([]byte, error) {
-	key := pbkdf2.Key([]byte(password), salt, defaultIterationCount, keyLength, hashFunc)
+func DeriveKey(password string, salt []byte) []byte {
+	return pbkdf2.Key([]byte(password), salt, defaultIterationCount, keyLength, hashFunc)
+}
 
+// Encrypt performs AES-256 GCM encryption with a given 32-bytes key.
+func Encrypt(key, data []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
@@ -38,9 +41,7 @@ func Encrypt(password string, salt, data []byte) ([]byte, error) {
 	return encryptedData, nil
 }
 
-func Decrypt(password string, salt, encryptedData []byte) ([]byte, error) {
-	key := pbkdf2.Key([]byte(password), salt, defaultIterationCount, keyLength, hashFunc)
-
+func Decrypt(key, encryptedData []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err

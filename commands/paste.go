@@ -15,10 +15,11 @@ import (
 )
 
 type pasteRunner struct {
-	timeout    time.Duration
-	password   string
-	basicAuth  string
-	maxBufSize string
+	timeout          time.Duration
+	password         string
+	symmetricKeyFile string
+	basicAuth        string
+	maxBufSize       string
 
 	stdout io.Writer
 	stderr io.Writer
@@ -37,7 +38,8 @@ func NewPasteCommand(stdout, stderr io.Writer) *cobra.Command {
 		RunE: r.run,
 	}
 	cmd.Flags().DurationVar(&r.timeout, "timeout", 5*time.Second, "Time limit for requests")
-	cmd.Flags().StringVarP(&r.password, "password", "p", "", "Password for encryption/decryption")
+	cmd.Flags().StringVarP(&r.password, "password", "p", "", "Password to derive the symmetric-key to be used for decryption")
+	cmd.Flags().StringVarP(&r.symmetricKeyFile, "symmetric-key-file", "k", "", "Path to symmetric-key file to be used for decryption")
 	cmd.Flags().StringVarP(&r.basicAuth, "basic-auth", "a", "", "Basic authentication, username:password")
 	cmd.Flags().StringVar(&r.maxBufSize, "max-size", "500mb", "Max data size with unit")
 	return cmd
@@ -51,12 +53,13 @@ func (r *pasteRunner) run(_ *cobra.Command, _ []string) error {
 	client := &http.Client{
 		Timeout: r.timeout,
 	}
+
+	// Start reading data.
 	req, err := http.NewRequest(http.MethodGet, address, nil)
 	if err != nil {
 		return fmt.Errorf("failed to make request: %w", err)
 	}
 	addBasicAuthHeader(req, r.basicAuth)
-
 	res, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to issue get request: %w", err)
@@ -74,23 +77,15 @@ func (r *pasteRunner) run(_ *cobra.Command, _ []string) error {
 		return fmt.Errorf("failed to read the response body: %w", err)
 	}
 
-	var password string
-
-	if r.password != "" {
-		password = r.password
-	} else if os.Getenv(pbgopyPasswordFileEnv) != "" {
-		password, err = getPasswordFromFile(os.Getenv(pbgopyPasswordFileEnv))
-		if err != nil {
-			return err
-		}
+	// Decryption with the user-specified way.
+	key, err := getKey(r.password, r.symmetricKeyFile, func() ([]byte, error) {
+		return r.getSalt(client, address)
+	})
+	if err != nil {
+		return fmt.Errorf("failed to get key: %w", err)
 	}
-
-	if password != "" {
-		salt, err := r.getSalt(client, address)
-		if err != nil {
-			return fmt.Errorf("failed to get salt: %w", err)
-		}
-		data, err = pbcrypto.Decrypt(password, salt, data)
+	if key != nil {
+		data, err = pbcrypto.Decrypt(key, data)
 		if err != nil {
 			return fmt.Errorf("failed to decrypt the data: %w", err)
 		}

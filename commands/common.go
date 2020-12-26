@@ -6,15 +6,17 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 
+	pbcrypto "github.com/nakabonne/pbgopy/crypto"
 	"github.com/nakabonne/pbgopy/datasize"
 )
 
 const (
-	pbgopyServerEnv       = "PBGOPY_SERVER"
-	pbgopyPasswordFileEnv = "PBGOPY_PASSWORD_FILE"
+	pbgopyServerEnv           = "PBGOPY_SERVER"
+	pbgopySymmetricKeyFileEnv = "PBGOPY_SYMMETRIC_KEY_FILE"
 )
 
 // addBasicAuthHeader adds a Basic Auth Header if the auth flag is set.
@@ -48,24 +50,36 @@ func datasizeToBytes(ds string) (int64, error) {
 	return int64(maxBufSizeBytes.Bytes()), nil
 }
 
-// getPasswordFromFile returns the password stored in the provided filepath.
-func getPasswordFromFile(filepath string) (string, error) {
-	file, err := os.Open(filepath)
-	if err != nil {
-		return "", fmt.Errorf("failed to open password file: %w", err)
+// getKey retrieve the symmetric-key. nil is returned as a first value if key not found.
+func getKey(password, symmetricKeyFile string, saltFunc func() ([]byte, error)) ([]byte, error) {
+	if password != "" && (symmetricKeyFile != "" || os.Getenv(pbgopySymmetricKeyFileEnv) != "") {
+		return nil, fmt.Errorf("can't specify both password and key")
 	}
 
-	fileInfo, err := file.Stat()
-	if err != nil {
-		return "", fmt.Errorf("unable to get file information: %w", err)
+	// Derive from password.
+	if password != "" {
+		var err error
+		salt, err := saltFunc()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get salt: %w", err)
+		}
+		return pbcrypto.DeriveKey(password, salt), nil
 	}
 
-	passBuf := make([]byte, fileInfo.Size())
-
-	_, err = io.ReadFull(file, passBuf)
-	if err != nil {
-		return "", fmt.Errorf("unable to read file: %w", err)
+	// Read from file.
+	if symmetricKeyFile != "" {
+		key, err := ioutil.ReadFile(symmetricKeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read %s: %w", symmetricKeyFile, err)
+		}
+		return key, nil
 	}
-
-	return string(passBuf), nil
+	if os.Getenv(pbgopySymmetricKeyFileEnv) != "" {
+		key, err := ioutil.ReadFile(os.Getenv(pbgopySymmetricKeyFileEnv))
+		if err != nil {
+			return nil, fmt.Errorf("failed to read %s: %w", symmetricKeyFile, err)
+		}
+		return key, nil
+	}
+	return nil, nil
 }

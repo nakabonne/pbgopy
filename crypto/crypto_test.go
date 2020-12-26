@@ -10,20 +10,20 @@ import (
 func TestEncryptDecrypt(t *testing.T) {
 	tests := []struct {
 		name        string
-		passForEnc  string
-		passForDec  string
+		keyForEnc   string
+		keyForDec   string
 		wantSuccess bool
 	}{
 		{
-			name:        "wrong password given",
-			passForEnc:  "password",
-			passForDec:  "wrong-password",
+			name:        "wrong key given",
+			keyForEnc:   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			keyForDec:   "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
 			wantSuccess: false,
 		},
 		{
-			name:        "right password given",
-			passForEnc:  "password",
-			passForDec:  "password",
+			name:        "right key given",
+			keyForEnc:   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			keyForDec:   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 			wantSuccess: true,
 		},
 	}
@@ -31,14 +31,13 @@ func TestEncryptDecrypt(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var (
 				data       = []byte("data")
-				salt       = []byte("salt")
 				cipherText = []byte{}
 				plainText  = []byte{}
 				err        error
 			)
-			cipherText, err = Encrypt(tt.passForEnc, salt, data)
+			cipherText, err = Encrypt([]byte(tt.keyForEnc), data)
 			require.NoError(t, err)
-			plainText, err = Decrypt(tt.passForDec, salt, cipherText)
+			plainText, err = Decrypt([]byte(tt.keyForDec), cipherText)
 			assert.Equal(t, tt.wantSuccess, err == nil)
 
 			assert.Equal(t, tt.wantSuccess, string(data) == string(plainText))
