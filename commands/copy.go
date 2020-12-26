@@ -17,11 +17,12 @@ import (
 )
 
 type copyRunner struct {
-	timeout       time.Duration
-	password      string
-	basicAuth     string
-	maxBufSize    string
-	fromClipboard bool
+	timeout          time.Duration
+	password         string
+	symmetricKeyFile string
+	basicAuth        string
+	maxBufSize       string
+	fromClipboard    bool
 
 	stdout io.Writer
 	stderr io.Writer
@@ -40,7 +41,8 @@ func NewCopyCommand(stdout, stderr io.Writer) *cobra.Command {
 		RunE: r.run,
 	}
 	cmd.Flags().DurationVar(&r.timeout, "timeout", 5*time.Second, "Time limit for requests")
-	cmd.Flags().StringVarP(&r.password, "password", "p", "", "Password for encryption/decryption")
+	cmd.Flags().StringVarP(&r.password, "password", "p", "", "Password to derive the symmetric-key to be used for encryption")
+	cmd.Flags().StringVarP(&r.symmetricKeyFile, "symmetric-key-file", "k", "", "Path to symmetric-key file to be used for encryption")
 	cmd.Flags().StringVarP(&r.basicAuth, "basic-auth", "a", "", "Basic authentication, username:password")
 	cmd.Flags().StringVar(&r.maxBufSize, "max-size", "500mb", "Max data size with unit")
 	cmd.Flags().BoolVarP(&r.fromClipboard, "from-clipboard", "c", false, "Put the data stored at local clipboard into pbgopy server")
@@ -53,8 +55,8 @@ func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 		return fmt.Errorf("put the pbgopy server's address into %s environment variable", pbgopyServerEnv)
 	}
 
+	// Start reading data.
 	var source io.Reader = os.Stdin
-
 	if r.fromClipboard {
 		clipboardData, err := clipboard.ReadAll()
 		if err != nil {
@@ -62,7 +64,6 @@ func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 		}
 		source = strings.NewReader(clipboardData)
 	}
-
 	sizeInBytes, err := datasizeToBytes(r.maxBufSize)
 	if err != nil {
 		return fmt.Errorf("failed to parse data size: %w", err)
@@ -76,23 +77,15 @@ func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 		Timeout: r.timeout,
 	}
 
-	var password string
-
-	if r.password != "" {
-		password = r.password
-	} else if os.Getenv(pbgopyPasswordFileEnv) != "" {
-		password, err = getPasswordFromFile(os.Getenv(pbgopyPasswordFileEnv))
-		if err != nil {
-			return err
-		}
+	// Encryption with the user-specified way.
+	key, err := getKey(r.password, r.symmetricKeyFile, func() ([]byte, error) {
+		return r.regenerateSalt(client, address)
+	})
+	if err != nil {
+		return fmt.Errorf("failed to get key: %w", err)
 	}
-
-	if password != "" {
-		salt, err := r.regenerateSalt(client, address)
-		if err != nil {
-			return fmt.Errorf("failed to get salt: %w", err)
-		}
-		data, err = pbcrypto.Encrypt(password, salt, data)
+	if key != nil {
+		data, err = pbcrypto.Encrypt(key, data)
 		if err != nil {
 			return fmt.Errorf("failed to encrypt the data: %w", err)
 		}
