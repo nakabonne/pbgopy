@@ -25,7 +25,7 @@ func DeriveKey(password string, salt []byte) []byte {
 }
 
 // Encrypt performs AES-256 GCM encryption with a given 32-bytes key.
-func Encrypt(key, data []byte) ([]byte, error) {
+func Encrypt(key, plaintext []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
@@ -40,12 +40,12 @@ func Encrypt(key, data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	encryptedData := gcm.Seal(nonce, nonce, data, nil)
-	return encryptedData, nil
+	encrypted := gcm.Seal(nonce, nonce, plaintext, nil)
+	return encrypted, nil
 }
 
 // Decrypt performs AES-256 GCM decryption with a given 32-bytes key.
-func Decrypt(key, encryptedData []byte) ([]byte, error) {
+func Decrypt(key, encrypted []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
@@ -55,18 +55,18 @@ func Decrypt(key, encryptedData []byte) ([]byte, error) {
 		return nil, err
 	}
 	nonceSize := gcm.NonceSize()
-	if len(encryptedData) < nonceSize {
+	if len(encrypted) < nonceSize {
 		return nil, fmt.Errorf("invalid cipher test")
 	}
-	nonce := encryptedData[:nonceSize]
-	ciphertext := encryptedData[nonceSize:]
+	nonce := encrypted[:nonceSize]
+	encryptedText := encrypted[nonceSize:]
 
-	return gcm.Open(nil, nonce, ciphertext, nil)
+	return gcm.Open(nil, nonce, encryptedText, nil)
 }
 
 // EncryptWithRSA encrypts the given data with RSA-OAEP.
 // pubKey must be a RSA public key in PEM format.
-func EncryptWithRSA(pubKey, data []byte) ([]byte, error) {
+func EncryptWithRSA(pubKey, plaintext []byte) ([]byte, error) {
 	pem, _ := pem.Decode(pubKey)
 	if pem == nil {
 		return nil, fmt.Errorf("given public key is not in pem format")
@@ -90,7 +90,7 @@ func EncryptWithRSA(pubKey, data []byte) ([]byte, error) {
 		}
 	}
 
-	return rsa.EncryptOAEP(hashFunc(), rand.Reader, parsedPublicKey, data, nil)
+	return rsa.EncryptOAEP(hashFunc(), rand.Reader, parsedPublicKey, plaintext, nil)
 }
 
 // DecryptWithRSA decrypts the given encrypted data with RSA-OAEP.
