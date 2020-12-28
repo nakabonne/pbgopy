@@ -100,7 +100,7 @@ YQIDAQAB
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := EncryptWithRSA([]byte(tt.pubKey), []byte(tt.data))
+			_, err := EncryptWithRSA([]byte(tt.data), []byte(tt.pubKey))
 			assert.Equal(t, tt.wantErr, err != nil)
 		})
 	}
@@ -108,11 +108,12 @@ YQIDAQAB
 
 func TestDecryptWithRSA(t *testing.T) {
 	tests := []struct {
-		name    string
-		privKey string
-		pubKey  string
-		data    string
-		wantErr bool
+		name     string
+		privKey  string
+		pubKey   string
+		data     string
+		password string
+		wantErr  bool
 	}{
 		{
 			name:    "private key is not in pem format",
@@ -134,7 +135,7 @@ vI7VebGGA3OUmbqWMPoIR2epT3KLRi2pEA==
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := DecryptWithRSA([]byte(tt.privKey), []byte(tt.data))
+			_, err := DecryptWithRSA([]byte(tt.data), []byte(tt.privKey), []byte(tt.password))
 			assert.Equal(t, tt.wantErr, err != nil)
 		})
 	}
@@ -280,9 +281,9 @@ QwIDAQAB
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			encrypted, err := EncryptWithRSA([]byte(tt.pubKey), []byte(tt.data))
+			encrypted, err := EncryptWithRSA([]byte(tt.data), []byte(tt.pubKey))
 			assert.NoError(t, err)
-			_, err = DecryptWithRSA([]byte(tt.privKey), encrypted)
+			_, err = DecryptWithRSA(encrypted, []byte(tt.privKey), nil)
 			assert.Equal(t, tt.wantErr, err != nil)
 		})
 	}
