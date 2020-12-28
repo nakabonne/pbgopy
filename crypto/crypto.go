@@ -66,7 +66,7 @@ func Decrypt(key, encrypted []byte) ([]byte, error) {
 
 // EncryptWithRSA encrypts the given data with RSA-OAEP.
 // pubKey must be a RSA public key in PEM or DER format.
-func EncryptWithRSA(pubKey, plaintext []byte) ([]byte, error) {
+func EncryptWithRSA(plaintext, pubKey []byte) ([]byte, error) {
 	// At first it assumes the pubKey is in DER format.
 	derKey, err := parsePubKeyInDER(pubKey)
 	if err == nil {
@@ -106,7 +106,7 @@ func parsePubKeyInDER(der []byte) (*rsa.PublicKey, error) {
 
 // DecryptWithRSA decrypts the given encrypted data with RSA-OAEP.
 // privKey must be a RSA private key in PEM or DER format.
-func DecryptWithRSA(privKey, encrypted []byte) ([]byte, error) {
+func DecryptWithRSA(encrypted, privKey, password []byte) ([]byte, error) {
 	// At first it assumes the privKey is in DER format.
 	derKey, err := parsePrivKeyInDER(privKey)
 	if err == nil {
@@ -118,7 +118,15 @@ func DecryptWithRSA(privKey, encrypted []byte) ([]byte, error) {
 	if pem == nil {
 		return nil, fmt.Errorf("given private key format is neither DER nor PEM")
 	}
-	pemKey, err := parsePrivKeyInDER(pem.Bytes)
+	bytes := pem.Bytes
+	if x509.IsEncryptedPEMBlock(pem) {
+		var err error
+		bytes, err = x509.DecryptPEMBlock(pem, password)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decrypt the encrypted private key: %w", err)
+		}
+	}
+	pemKey, err := parsePrivKeyInDER(bytes)
 	if err != nil {
 		return nil, err
 	}

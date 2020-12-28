@@ -127,7 +127,7 @@ func (r *copyRunner) encrypt(plaintext []byte, saltFunc func() ([]byte, error)) 
 		if err != nil {
 			return nil, fmt.Errorf("failed to read %s: %w", r.publicKeyFile, err)
 		}
-		encryptedSessKey, err := pbcrypto.EncryptWithRSA(pubKey, sessionKey)
+		encryptedSessKey, err := pbcrypto.EncryptWithRSA(sessionKey, pubKey)
 		if err != nil {
 			return nil, fmt.Errorf("failed to encrypt the session key: %w", err)
 		}

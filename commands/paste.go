@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,12 +18,13 @@ import (
 )
 
 type pasteRunner struct {
-	timeout          time.Duration
-	password         string
-	symmetricKeyFile string
-	privateKeyFile   string
-	basicAuth        string
-	maxBufSize       string
+	timeout                time.Duration
+	password               string
+	symmetricKeyFile       string
+	privateKeyFile         string
+	privateKeyPasswordFile string
+	basicAuth              string
+	maxBufSize             string
 
 	stdout io.Writer
 	stderr io.Writer
@@ -44,6 +46,7 @@ func NewPasteCommand(stdout, stderr io.Writer) *cobra.Command {
 	cmd.Flags().StringVarP(&r.password, "password", "p", "", "Password to derive the symmetric-key to be used for decryption")
 	cmd.Flags().StringVarP(&r.symmetricKeyFile, "symmetric-key-file", "k", "", "Path to symmetric-key file to be used for decryption")
 	cmd.Flags().StringVarP(&r.privateKeyFile, "private-key-file", "K", "", "Path to an RSA private-key file to be used for decryption; Must be in PEM or DER format")
+	cmd.Flags().StringVar(&r.privateKeyPasswordFile, "private-key-password-file", "", "Path to password file to decrypt the encrypted private key")
 	cmd.Flags().StringVarP(&r.basicAuth, "basic-auth", "a", "", "Basic authentication, username:password")
 	cmd.Flags().StringVar(&r.maxBufSize, "max-size", "500mb", "Max data size with unit")
 	return cmd
@@ -107,7 +110,14 @@ func (r *pasteRunner) decrypt(data []byte, saltFunc func() ([]byte, error)) ([]b
 		if err != nil {
 			return nil, fmt.Errorf("failed to read %s: %w", r.privateKeyFile, err)
 		}
-		sessKey, err := pbcrypto.DecryptWithRSA(privKey, withSessKey.EncryptedSessionKey)
+		var keyPassword []byte
+		if r.privateKeyPasswordFile != "" {
+			keyPassword, err = ioutil.ReadFile(r.privateKeyPasswordFile)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read %s: %w", r.privateKeyPasswordFile, err)
+			}
+		}
+		sessKey, err := pbcrypto.DecryptWithRSA(withSessKey.EncryptedSessionKey, privKey, bytes.TrimSpace(keyPassword))
 		if err != nil {
 			return nil, fmt.Errorf("failed to decrypt the session key: %w", err)
 		}
