@@ -17,6 +17,8 @@ import (
 const (
 	pbgopyServerEnv           = "PBGOPY_SERVER"
 	pbgopySymmetricKeyFileEnv = "PBGOPY_SYMMETRIC_KEY_FILE"
+
+	defaultGPGExecutablePath = "gpg"
 )
 
 var errNotfound = errors.New("not found")
@@ -58,7 +60,8 @@ func datasizeToBytes(ds string) (int64, error) {
 	return int64(maxBufSizeBytes.Bytes()), nil
 }
 
-// getSymmetricKey retrieves the symmetric-key. errNotFound is returned if key not found.
+// getSymmetricKey retrieves the symmetric-key. First try to derive it from password.
+// Then try to read the file. errNotFound is returned if key not found.
 func getSymmetricKey(password, symmetricKeyFile string, saltFunc func() ([]byte, error)) ([]byte, error) {
 	if password != "" && (symmetricKeyFile != "" || os.Getenv(pbgopySymmetricKeyFileEnv) != "") {
 		return nil, fmt.Errorf("can't specify both password and key")

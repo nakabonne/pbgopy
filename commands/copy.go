@@ -2,6 +2,7 @@ package commands
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"encoding/json"
 	"errors"
@@ -24,6 +25,8 @@ type copyRunner struct {
 	password         string
 	symmetricKeyFile string
 	publicKeyFile    string
+	gpgUserID        string
+	gpgPath          string
 	basicAuth        string
 	maxBufSize       string
 	fromClipboard    bool
@@ -48,6 +51,8 @@ func NewCopyCommand(stdout, stderr io.Writer) *cobra.Command {
 	cmd.Flags().StringVarP(&r.password, "password", "p", "", "Password to derive the symmetric-key to be used for encryption")
 	cmd.Flags().StringVarP(&r.symmetricKeyFile, "symmetric-key-file", "k", "", "Path to symmetric-key file to be used for encryption")
 	cmd.Flags().StringVarP(&r.publicKeyFile, "public-key-file", "K", "", "Path to an RSA public-key file to be used for encryption; Must be in PEM or DER format")
+	cmd.Flags().StringVarP(&r.gpgUserID, "gpg-user-id", "u", "", "GPG user id associated with public key to be used for encryption")
+	cmd.Flags().StringVar(&r.gpgPath, "gpg-path", defaultGPGExecutablePath, "Path to gpg executable")
 	cmd.Flags().StringVarP(&r.basicAuth, "basic-auth", "a", "", "Basic authentication, username:password")
 	cmd.Flags().StringVar(&r.maxBufSize, "max-size", "500mb", "Max data size with unit")
 	cmd.Flags().BoolVarP(&r.fromClipboard, "from-clipboard", "c", false, "Put the data stored at local clipboard into pbgopy server")
@@ -109,38 +114,16 @@ func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 
 // encrypts with the user-specified way. It directly gives back plaintext if any key doesn't exists.
 // The order of priority is:
-//   - hybrid encryption with a public-key
+//   - hybrid cryptosystem with a public-key
 //   - symmetric-key encryption with a key derived from password
 //   - symmetric-key encryption with an existing key
 func (r *copyRunner) encrypt(plaintext []byte, saltFunc func() ([]byte, error)) ([]byte, error) {
-	if r.publicKeyFile != "" {
-		sessionKey := make([]byte, 32)
-		if _, err := rand.Read(sessionKey); err != nil {
-			return nil, fmt.Errorf("failed to gererate a session key: %w", err)
-		}
-		encrypted, err := pbcrypto.Encrypt(sessionKey, plaintext)
-		if err != nil {
-			return nil, fmt.Errorf("failed to encrypt the plaintext: %w", err)
-		}
-		// Encrypt the session-key with the public-key.
-		pubKey, err := ioutil.ReadFile(r.publicKeyFile)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read %s: %w", r.publicKeyFile, err)
-		}
-		encryptedSessKey, err := pbcrypto.EncryptWithRSA(sessionKey, pubKey)
-		if err != nil {
-			return nil, fmt.Errorf("failed to encrypt the session key: %w", err)
-		}
-		withKey, err := json.Marshal(&CipherWithSessKey{
-			EncryptedData:       encrypted,
-			EncryptedSessionKey: encryptedSessKey,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to encode data with session-key: %w", err)
-		}
-		return withKey, nil
+	// Perform hybrid encryption with a public-key if specified.
+	if r.publicKeyFile != "" || r.gpgUserID != "" {
+		return r.encryptWithPubKey(plaintext)
 	}
 
+	// Try to encrypt with a symmetric-key.
 	key, err := getSymmetricKey(r.password, r.symmetricKeyFile, saltFunc)
 	if errors.Is(err, errNotfound) {
 		return plaintext, nil
@@ -153,6 +136,51 @@ func (r *copyRunner) encrypt(plaintext []byte, saltFunc func() ([]byte, error)) 
 		return nil, fmt.Errorf("failed to encrypt the plaintext: %w", err)
 	}
 	return encrypted, nil
+}
+
+// NOTE: pbgopy provides two way to specify the public key. Specifying path directly or specifying via GPG.
+// Either publicKeyFile or gpgUserID are required.
+func (r *copyRunner) encryptWithPubKey(plaintext []byte) ([]byte, error) {
+	if r.gpgUserID != "" && r.publicKeyFile != "" {
+		return nil, fmt.Errorf("can't specify both \"--gpg-user-id\" and \"--public-key-file\"")
+	}
+
+	sessionKey := make([]byte, 32)
+	if _, err := rand.Read(sessionKey); err != nil {
+		return nil, fmt.Errorf("failed to gererate a session key: %w", err)
+	}
+	encrypted, err := pbcrypto.Encrypt(sessionKey, plaintext)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encrypt the plaintext: %w", err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Encrypt the session-key with the public-key.
+	var encryptedSessKey []byte
+	if r.gpgUserID != "" {
+		gpg := pbcrypto.NewGPG(r.gpgPath)
+		encryptedSessKey, err = gpg.EncryptWithRecipient(ctx, sessionKey, r.gpgUserID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encrypt the session key: %w", err)
+		}
+	}
+	if r.publicKeyFile != "" {
+		pubKey, err := ioutil.ReadFile(r.publicKeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read %s: %w", r.publicKeyFile, err)
+		}
+		encryptedSessKey, err = pbcrypto.EncryptWithRSA(sessionKey, pubKey)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encrypt the session key: %w", err)
+		}
+	}
+
+	return json.Marshal(&CipherWithSessKey{
+		EncryptedData:       encrypted,
+		EncryptedSessionKey: encryptedSessKey,
+	})
 }
 
 // regenerateSalt lets the server regenerate the salt and gives back the new one.
