@@ -105,7 +105,7 @@ func parsePubKeyInDER(der []byte) (*rsa.PublicKey, error) {
 }
 
 // DecryptWithRSA decrypts the given encrypted data with RSA-OAEP.
-// privKey must be a RSA private key in PEM format.
+// privKey must be a RSA private key in PEM or DER format.
 func DecryptWithRSA(privKey, encrypted []byte) ([]byte, error) {
 	// At first it assumes the privKey is in DER format.
 	derKey, err := parsePrivKeyInDER(privKey)
