@@ -19,6 +19,14 @@ const (
 	pbgopySymmetricKeyFileEnv = "PBGOPY_SYMMETRIC_KEY_FILE"
 )
 
+var errNotfound = errors.New("not found")
+
+// CipherWithSessKey is used when hybrid encryption.
+type CipherWithSessKey struct {
+	EncryptedData       []byte `json:"encryptedData"`
+	EncryptedSessionKey []byte `json:"encryptedSessionKey"`
+}
+
 // addBasicAuthHeader adds a Basic Auth Header if the auth flag is set.
 func addBasicAuthHeader(req *http.Request, basicAuth string) {
 	if basicAuth == "" {
@@ -50,8 +58,8 @@ func datasizeToBytes(ds string) (int64, error) {
 	return int64(maxBufSizeBytes.Bytes()), nil
 }
 
-// getKey retrieve the symmetric-key. nil is returned as a first value if key not found.
-func getKey(password, symmetricKeyFile string, saltFunc func() ([]byte, error)) ([]byte, error) {
+// getSymmetricKey retrieves the symmetric-key. errNotFound is returned if key not found.
+func getSymmetricKey(password, symmetricKeyFile string, saltFunc func() ([]byte, error)) ([]byte, error) {
 	if password != "" && (symmetricKeyFile != "" || os.Getenv(pbgopySymmetricKeyFileEnv) != "") {
 		return nil, fmt.Errorf("can't specify both password and key")
 	}
@@ -81,5 +89,5 @@ func getKey(password, symmetricKeyFile string, saltFunc func() ([]byte, error)) 
 		}
 		return bytes.TrimSpace(key), nil
 	}
-	return nil, nil
+	return nil, errNotfound
 }
