@@ -51,7 +51,7 @@ func NewCopyCommand(stdout, stderr io.Writer) *cobra.Command {
 	cmd.Flags().StringVarP(&r.password, "password", "p", "", "Password to derive the symmetric-key to be used for encryption")
 	cmd.Flags().StringVarP(&r.symmetricKeyFile, "symmetric-key-file", "k", "", "Path to symmetric-key file to be used for encryption")
 	cmd.Flags().StringVarP(&r.publicKeyFile, "public-key-file", "K", "", "Path to an RSA public-key file to be used for encryption; Must be in PEM or DER format")
-	cmd.Flags().StringVarP(&r.gpgUserID, "gpg-user-id", "u", "", "GPG user id associated with public key to be used for encryption")
+	cmd.Flags().StringVarP(&r.gpgUserID, "gpg-user-id", "u", "", "GPG user id associated with public-key to be used for encryption")
 	cmd.Flags().StringVar(&r.gpgPath, "gpg-path", defaultGPGExecutablePath, "Path to gpg executable")
 	cmd.Flags().StringVarP(&r.basicAuth, "basic-auth", "a", "", "Basic authentication, username:password")
 	cmd.Flags().StringVar(&r.maxBufSize, "max-size", "500mb", "Max data size with unit")
@@ -111,17 +111,17 @@ func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 }
 
 // encrypts with the user-specified way. It directly gives back plaintext if any key doesn't exists.
-// The order of priority is:
-//   - hybrid cryptosystem with a public-key
-//   - symmetric-key encryption with a key derived from password
-//   - symmetric-key encryption with an existing key
 func (r *copyRunner) encrypt(plaintext []byte) ([]byte, error) {
-	// Perform hybrid encryption with a public-key if specified.
+	if (r.password != "" || r.symmetricKeyFile != "") && (r.publicKeyFile != "" || r.gpgUserID != "") {
+		return nil, fmt.Errorf("only one of the symmetric-key or public-key can be used for encryption")
+	}
+
+	// Perform hybrid encryption with a public-key if it exists.
 	if r.publicKeyFile != "" || r.gpgUserID != "" {
 		return r.encryptWithPubKey(plaintext)
 	}
 
-	// Try to encrypt with a symmetric-key.
+	// Encrypt with a symmetric-key if key exists.
 	key, err := getSymmetricKey(r.password, r.symmetricKeyFile)
 	if errors.Is(err, errNotfound) {
 		return plaintext, nil

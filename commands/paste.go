@@ -48,7 +48,7 @@ func NewPasteCommand(stdout, stderr io.Writer) *cobra.Command {
 	cmd.Flags().StringVarP(&r.password, "password", "p", "", "Password to derive the symmetric-key to be used for decryption")
 	cmd.Flags().StringVarP(&r.symmetricKeyFile, "symmetric-key-file", "k", "", "Path to symmetric-key file to be used for decryption")
 	cmd.Flags().StringVarP(&r.privateKeyFile, "private-key-file", "K", "", "Path to an RSA private-key file to be used for decryption; Must be in PEM or DER format")
-	cmd.Flags().StringVarP(&r.gpgUserID, "gpg-user-id", "u", "", "GPG user id associated with private key to be used for decryption")
+	cmd.Flags().StringVarP(&r.gpgUserID, "gpg-user-id", "u", "", "GPG user id associated with private-key to be used for decryption")
 	cmd.Flags().StringVar(&r.gpgPath, "gpg-path", defaultGPGExecutablePath, "Path to gpg executable")
 	cmd.Flags().StringVar(&r.privateKeyPasswordFile, "private-key-password-file", "", "Path to password file to decrypt the encrypted private key")
 	cmd.Flags().StringVarP(&r.basicAuth, "basic-auth", "a", "", "Basic authentication, username:password")
@@ -99,17 +99,17 @@ func (r *pasteRunner) run(_ *cobra.Command, _ []string) error {
 }
 
 // decrypts with the user-specified way. It directly gives back the given data if any key doesn't exists.
-// The order of priority is:
-//   - hybrid cryptosystem with a private-key
-//   - symmetric-key encryption with a key derived from password
-//   - symmetric-key encryption with an existing key
 func (r *pasteRunner) decrypt(data []byte) ([]byte, error) {
-	// Perform hybrid decryption with a private-key if specified.
+	if (r.password != "" || r.symmetricKeyFile != "") && (r.privateKeyFile != "" || r.gpgUserID != "") {
+		return nil, fmt.Errorf("only one of the symmetric-key or private-key can be used for decryption")
+	}
+
+	// Perform hybrid decryption with a private-key if it exists.
 	if r.privateKeyFile != "" || r.gpgUserID != "" {
 		return r.decryptWithPrivKey(data)
 	}
 
-	// Try to decrypt with a symmetric-key.
+	// Decrypt with a symmetric-key if key exists.
 	key, err := getSymmetricKey(r.password, r.symmetricKeyFile)
 	if errors.Is(err, errNotfound) {
 		return data, nil
