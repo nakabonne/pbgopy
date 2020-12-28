@@ -62,19 +62,16 @@ func datasizeToBytes(ds string) (int64, error) {
 
 // getSymmetricKey retrieves the symmetric-key. First try to derive it from password.
 // Then try to read the file. errNotFound is returned if key not found.
-func getSymmetricKey(password, symmetricKeyFile string, saltFunc func() ([]byte, error)) ([]byte, error) {
+func getSymmetricKey(password, symmetricKeyFile string) ([]byte, error) {
 	if password != "" && (symmetricKeyFile != "" || os.Getenv(pbgopySymmetricKeyFileEnv) != "") {
 		return nil, fmt.Errorf("can't specify both password and key")
 	}
 
 	// Derive from password.
 	if password != "" {
-		var err error
-		salt, err := saltFunc()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get salt: %w", err)
-		}
-		return pbcrypto.DeriveKey(password, salt), nil
+		// NOTE: This option is for cases where data cannot be shared between devices in advance.
+		// Therefore nil is used as a salt though it cannot prevent a dictionary attack.
+		return pbcrypto.DeriveKey(password, nil), nil
 	}
 
 	// Read from file.

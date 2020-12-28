@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -89,9 +88,8 @@ func (r *pasteRunner) run(_ *cobra.Command, _ []string) error {
 		return fmt.Errorf("failed to read the response body: %w", err)
 	}
 
-	data, err = r.decrypt(data, func() ([]byte, error) {
-		return r.getSalt(client, address)
-	})
+	// Start decryption if needed.
+	data, err = r.decrypt(data)
 	if err != nil {
 		return err
 	}
@@ -105,14 +103,14 @@ func (r *pasteRunner) run(_ *cobra.Command, _ []string) error {
 //   - hybrid cryptosystem with a private-key
 //   - symmetric-key encryption with a key derived from password
 //   - symmetric-key encryption with an existing key
-func (r *pasteRunner) decrypt(data []byte, saltFunc func() ([]byte, error)) ([]byte, error) {
+func (r *pasteRunner) decrypt(data []byte) ([]byte, error) {
 	// Perform hybrid decryption with a private-key if specified.
 	if r.privateKeyFile != "" || r.gpgUserID != "" {
 		return r.decryptWithPrivKey(data)
 	}
 
 	// Try to decrypt with a symmetric-key.
-	key, err := getSymmetricKey(r.password, r.symmetricKeyFile, saltFunc)
+	key, err := getSymmetricKey(r.password, r.symmetricKeyFile)
 	if errors.Is(err, errNotfound) {
 		return data, nil
 	}
@@ -175,26 +173,4 @@ func (r *pasteRunner) decryptWithPrivKey(data []byte) ([]byte, error) {
 		return nil, fmt.Errorf("failed to decrypt the encrypted data: %w", err)
 	}
 	return plaintext, nil
-
-}
-
-// getSalt gives back the salt.
-func (r *pasteRunner) getSalt(client *http.Client, address string) ([]byte, error) {
-	if strings.HasSuffix(address, "/") {
-		address = address[:len(address)-1]
-	}
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s%s", address, saltPath), nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to make request: %w", err)
-	}
-	addBasicAuthHeader(req, r.basicAuth)
-	res, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to issue get request: %w", err)
-	}
-	defer res.Body.Close()
-	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed request: Status %s", res.Status)
-	}
-	return ioutil.ReadAll(res.Body)
 }

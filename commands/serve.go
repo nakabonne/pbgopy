@@ -2,7 +2,6 @@ package commands
 
 import (
 	"context"
-	"crypto/rand"
 	"errors"
 	"fmt"
 	"io"
@@ -22,11 +21,9 @@ const (
 	defaultTTL  = time.Hour * 24
 
 	rootPath        = "/"
-	saltPath        = "/salt"
 	lastUpdatedPath = "/lastupdated"
 
 	dataCacheKey        = "data"
-	saltCacheKey        = "salt"
 	lastUpdatedCacheKey = "lastUpdated"
 )
 
@@ -90,7 +87,6 @@ func (r *serveRunner) newServer() *http.Server {
 		Handler: mux,
 	}
 	mux.HandleFunc(rootPath, r.basicAuthHandler(r.handle))
-	mux.HandleFunc(saltPath, r.basicAuthHandler(r.handleSalt))
 	mux.HandleFunc(lastUpdatedPath, r.basicAuthHandler(r.handleLastUpdated))
 	return server
 }
@@ -127,39 +123,6 @@ func (r *serveRunner) handle(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 		w.WriteHeader(http.StatusOK)
-	default:
-		http.Error(w, fmt.Sprintf("Method %s is not allowed", req.Method), http.StatusMethodNotAllowed)
-	}
-}
-
-func (r *serveRunner) handleSalt(w http.ResponseWriter, req *http.Request) {
-	switch req.Method {
-	case http.MethodGet:
-		salt, err := r.cache.Get(saltCacheKey)
-		if errors.Is(err, cache.ErrNotFound) {
-			http.Error(w, "The salt not found", http.StatusNotFound)
-			return
-		}
-		if err != nil {
-			http.Error(w, "Failed to get salt from cache", http.StatusInternalServerError)
-			return
-		}
-		if s, ok := salt.([]byte); ok {
-			w.Write(s)
-			return
-		}
-		http.Error(w, fmt.Sprintf("The cached data is unknown type: %T", salt), http.StatusInternalServerError)
-	case http.MethodPut:
-		salt := make([]byte, 128)
-		if _, err := rand.Read(salt); err != nil {
-			http.Error(w, fmt.Sprintf("Failed to make salt: %v", err), http.StatusInternalServerError)
-			return
-		}
-		if err := r.cache.Put(saltCacheKey, salt); err != nil {
-			http.Error(w, fmt.Sprintf("Failed to cache: %v", err), http.StatusInternalServerError)
-			return
-		}
-		w.Write(salt)
 	default:
 		http.Error(w, fmt.Sprintf("Method %s is not allowed", req.Method), http.StatusMethodNotAllowed)
 	}
