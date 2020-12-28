@@ -40,7 +40,7 @@ func NewPasteCommand(stdout, stderr io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "paste",
 		Short: "Paste to stdout",
-		Example: `  export PBGOPY_SERVER=http://192.168.11.5:9090
+		Example: `  export PBGOPY_SERVER=http://host.xz:9090
   pbgopy paste >hello.txt`,
 		RunE: r.run,
 	}

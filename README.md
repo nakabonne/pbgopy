@@ -76,12 +76,11 @@ export PBGOPY_SERVER=http://host.xz:9090
 pbgopy paste >foo.png
 ```
 
-## Options
 
-### End-to-end encryption
+## End-to-end encryption
 `pbgopy` comes with a built-in ability to encrypt/decrypt with a variety of keys.
 
-#### With symmetric-key
+### With symmetric-key:
 
 You can derive the key from password with the `-p` flag, which is provided so that you can encrypt/decrypt without previous setting.
 ```bash
@@ -101,7 +100,7 @@ The `-k` flag or the `PBGOPY_SYMMETRIC_KEY_FILE` environment variable is availab
 pbgopy copy -k /path/to/pbgopy.key <plaintext.txt
 ```
 
-#### With public/private key-pair
+### With public/private key-pair:
 `pbgopy` can also encrypt using hybrid cryptosystem. If you have already exchanged public keys between devices you want to share data with, this is the way to go.
 
 ```bash
@@ -112,6 +111,9 @@ pbgopy copy --public-key-file /path/to/public.key <plaintext.txt
 pbgopy paste --private-key-file /path/to/private.key <plaintext.txt
 ```
 
+Note that you can only use an RSA key in PEM or DER format.
+
+#### Via GPG
 You manage your keyring in GPG? The `--gpg-user-id` (`-u`) flag is for you!
 Suppose you want to encrypt with a public key whose user id is `alice`:
 
@@ -127,7 +129,7 @@ pbgopy paste -u alice
 
 There are a couple of ways to specify a user ID. Visit [here](https://www.gnupg.org/documentation/manuals/gnupg/Specify-a-User-ID.html) to see the entire list.
 
-### TTL
+## TTL
 If you don't want more data to be cached on the server than necessary, use the `--ttl` flag to set TTL for the cache.
 Give `0s` for disabling it. Default is `24h`.
 
@@ -135,7 +137,7 @@ Give `0s` for disabling it. Default is `24h`.
 pbgopy serve --ttl 10m
 ```
 
-### Authentication
+## Authentication
 HTTP Basic Authentication is available with `-a` flag.
 
 ```bash
@@ -150,11 +152,81 @@ pbgopy copy -a user:pass <foo.png
 pbgopy paste -a user:pass >foo.png
 ```
 
-### From clipboard on your OS
+## From clipboard on your OS
 You can put the data stored at the clipboard on your OS into pbgopy server.
 
 ```bash
 pbgopy copy -c
+```
+
+## Command-line options
+
+#### Copy
+```
+pbgopy copy -h
+Copy from stdin
+
+Usage:
+  pbgopy copy [flags]
+
+Examples:
+  export PBGOPY_SERVER=http://host.xz:9090
+  echo hello | pbgopy copy
+
+Flags:
+  -a, --basic-auth string           Basic authentication, username:password
+  -c, --from-clipboard              Put the data stored at local clipboard into pbgopy server
+      --gpg-path string             Path to gpg executable (default "gpg")
+  -u, --gpg-user-id string          GPG user id associated with public-key to be used for encryption
+  -h, --help                        help for copy
+      --max-size string             Max data size with unit (default "500mb")
+  -p, --password string             Password to derive the symmetric-key to be used for encryption
+  -K, --public-key-file string      Path to an RSA public-key file to be used for encryption; Must be in PEM or DER format
+  -k, --symmetric-key-file string   Path to symmetric-key file to be used for encryption
+      --timeout duration            Time limit for requests (default 5s)
+```
+
+#### Paste
+```
+pbgopy paste -h
+Paste to stdout
+
+Usage:
+  pbgopy paste [flags]
+
+Examples:
+  export PBGOPY_SERVER=http://host.xz:9090
+  pbgopy paste >hello.txt
+
+Flags:
+  -a, --basic-auth string                  Basic authentication, username:password
+      --gpg-path string                    Path to gpg executable (default "gpg")
+  -u, --gpg-user-id string                 GPG user id associated with private-key to be used for decryption
+  -h, --help                               help for paste
+      --max-size string                    Max data size with unit (default "500mb")
+  -p, --password string                    Password to derive the symmetric-key to be used for decryption
+  -K, --private-key-file string            Path to an RSA private-key file to be used for decryption; Must be in PEM or DER format
+      --private-key-password-file string   Path to password file to decrypt the encrypted private key
+  -k, --symmetric-key-file string          Path to symmetric-key file to be used for decryption
+      --timeout duration                   Time limit for requests (default 5s)
+```
+
+#### Serve
+```
+pbgopy serve -h
+Start the server that acts like a clipboard
+
+Usage:
+  pbgopy serve [flags]
+
+Examples:
+pbgopy serve --port=9090 --ttl=10m
+
+Flags:
+  -a, --basic-auth string   Basic authentication, username:password
+  -h, --help                help for serve
+  -p, --port int            The port the server listens on (default 9090)
+      --ttl duration        The time that the contents is stored. Give 0s for disabling TTL (default 24h0m0s)
 ```
 
 ## Inspired By

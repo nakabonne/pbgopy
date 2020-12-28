@@ -43,7 +43,7 @@ func NewCopyCommand(stdout, stderr io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "copy",
 		Short: "Copy from stdin",
-		Example: `  export PBGOPY_SERVER=http://192.168.11.5:9090
+		Example: `  export PBGOPY_SERVER=http://host.xz:9090
   echo hello | pbgopy copy`,
 		RunE: r.run,
 	}
