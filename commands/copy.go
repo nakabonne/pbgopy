@@ -83,23 +83,21 @@ func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 		return fmt.Errorf("failed to read from source: %w", err)
 	}
 
-	client := &http.Client{
-		Timeout: r.timeout,
-	}
-
-	data, err = r.encrypt(data, func() ([]byte, error) {
-		return r.regenerateSalt(client, address)
-	})
+	// Start encryption.
+	data, err = r.encrypt(data)
 	if err != nil {
 		return err
 	}
 
+	// Start issuing an HTTP request.
+	client := &http.Client{
+		Timeout: r.timeout,
+	}
 	req, err := http.NewRequest(http.MethodPut, address, bytes.NewBuffer(data))
 	if err != nil {
 		return fmt.Errorf("failed to make request: %w", err)
 	}
 	addBasicAuthHeader(req, r.basicAuth)
-
 	res, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to issue request: %w", err)
@@ -117,14 +115,14 @@ func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 //   - hybrid cryptosystem with a public-key
 //   - symmetric-key encryption with a key derived from password
 //   - symmetric-key encryption with an existing key
-func (r *copyRunner) encrypt(plaintext []byte, saltFunc func() ([]byte, error)) ([]byte, error) {
+func (r *copyRunner) encrypt(plaintext []byte) ([]byte, error) {
 	// Perform hybrid encryption with a public-key if specified.
 	if r.publicKeyFile != "" || r.gpgUserID != "" {
 		return r.encryptWithPubKey(plaintext)
 	}
 
 	// Try to encrypt with a symmetric-key.
-	key, err := getSymmetricKey(r.password, r.symmetricKeyFile, saltFunc)
+	key, err := getSymmetricKey(r.password, r.symmetricKeyFile)
 	if errors.Is(err, errNotfound) {
 		return plaintext, nil
 	}
@@ -181,23 +179,4 @@ func (r *copyRunner) encryptWithPubKey(plaintext []byte) ([]byte, error) {
 		EncryptedData:       encrypted,
 		EncryptedSessionKey: encryptedSessKey,
 	})
-}
-
-// regenerateSalt lets the server regenerate the salt and gives back the new one.
-func (r *copyRunner) regenerateSalt(client *http.Client, address string) ([]byte, error) {
-	if strings.HasSuffix(address, "/") {
-		address = address[:len(address)-1]
-	}
-	req, err := http.NewRequest(http.MethodPut, fmt.Sprintf("%s%s", address, saltPath), bytes.NewBuffer([]byte{}))
-	if err != nil {
-		return nil, fmt.Errorf("failed to make request: %w", err)
-	}
-	addBasicAuthHeader(req, r.basicAuth)
-	res, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to issue request: %w", err)
-	}
-	defer res.Body.Close()
-
-	return ioutil.ReadAll(res.Body)
 }
