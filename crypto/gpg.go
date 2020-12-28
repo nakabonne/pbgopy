@@ -3,6 +3,7 @@ package crypto
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"os/exec"
 )
@@ -34,7 +35,13 @@ func (g *gpg) DecryptWithRecipient(ctx context.Context, encrypted []byte, userID
 }
 
 func (g *gpg) runGPGCommand(ctx context.Context, stdin io.Reader, args ...string) ([]byte, error) {
+	var stdout, stderr bytes.Buffer
 	cmd := exec.CommandContext(ctx, g.executable, args...)
 	cmd.Stdin = stdin
-	return cmd.Output()
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("failed to run GPG: stderr: %s: err: %w", stderr.String(), err)
+	}
+	return stdout.Bytes(), nil
 }
