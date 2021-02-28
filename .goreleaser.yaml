@@ -23,7 +23,11 @@ builds:
     - 7
   env:
     - CGO_ENABLED=0
-  ldflags: -s -w -X github.com/nakabonne/pbgopy/commands.version={{.Version}} -X github.com/nakabonne/pbgopy/commands.commit={{.ShortCommit}} -X github.com/nakabonne/pbgopy/commands.date={{.Date}}
+  ldflags:
+    - -X github.com/linuxsuren/cobra-extension/version.version={{.Version}}
+    - -X github.com/linuxsuren/cobra-extension/version.commit={{.ShortCommit}}
+    - -X github.com/linuxsuren/cobra-extension/version.date={{.Date}}
+    - -s -w
 
 archives:
 - replacements:
