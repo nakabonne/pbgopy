@@ -9,7 +9,7 @@
 ## Installation
 Binary releases are available through [here](https://github.com/nakabonne/pbgopy/releases).
 
-#### MacOS
+#### macOS
 
 ```
 brew install nakabonne/pbgopy/pbgopy
