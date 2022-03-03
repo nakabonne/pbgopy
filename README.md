@@ -45,7 +45,7 @@ nix-shell -p nixpkgs.pbgopy
 #### Go
 
 ```
-go get github.com/nakabonne/pbgopy
+go install github.com/nakabonne/pbgopy@latest
 ```
 
 #### Docker
