@@ -41,3 +41,22 @@ type Cache interface {
 	Putter
 	Deleter
 }
+
+// HistoryEntry represents a single clipboard history entry.
+type HistoryEntry struct {
+	ID        int    `json:"id"`
+	Data      []byte `json:"data"`
+	Timestamp int64  `json:"timestamp"`
+	Size      int    `json:"size"`
+}
+
+// HistoryCache extends Cache with clipboard history support.
+type HistoryCache interface {
+	Cache
+	// Append adds a new entry to the history and returns its ID.
+	Append(data []byte) (int, error)
+	// List returns the most recent entries, up to limit.
+	List(limit int) ([]HistoryEntry, error)
+	// GetEntry returns a specific history entry by ID.
+	GetEntry(id int) (*HistoryEntry, error)
+}
