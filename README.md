@@ -18,14 +18,14 @@ brew install nakabonne/pbgopy/pbgopy
 #### RHEL/CentOS
 
 ```
-rpm -ivh https://github.com/nakabonne/pbgopy/releases/download/v0.3.0/pbgopy_0.3.0_linux_amd64.rpm
+rpm -ivh https://github.com/nakabonne/pbgopy/releases/download/v0.4.0/pbgopy_0.4.0_linux_amd64.rpm
 ```
 
 #### Debian/Ubuntu
 
 ```
-wget https://github.com/nakabonne/pbgopy/releases/download/v0.3.0/pbgopy_0.3.0_linux_amd64.deb
-apt install ./pbgopy_0.3.0_linux_amd64.deb
+wget https://github.com/nakabonne/pbgopy/releases/download/v0.4.0/pbgopy_0.4.0_linux_amd64.deb
+apt install ./pbgopy_0.4.0_linux_amd64.deb
 ```
 
 #### Arch Linux

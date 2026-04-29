@@ -1,4 +1,5 @@
 FROM alpine
 
-COPY pbgopy /usr/bin/
+ARG TARGETPLATFORM
+COPY $TARGETPLATFORM/pbgopy /usr/bin/
 CMD ["pbgopy"]
