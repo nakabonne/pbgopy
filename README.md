@@ -76,6 +76,8 @@ export PBGOPY_SERVER=http://host.xz:9090
 pbgopy paste >foo.png
 ```
 
+## History of copies
+
 To keep previous copies, start the server with a larger history limit:
 
 ```bash
@@ -85,11 +87,12 @@ pbgopy serve --history-limit 20
 Each successful `copy` creates a new history entry and `paste` still returns the latest entry by default. You can list entries without printing full clipboard contents, paste a specific entry, or delete history:
 
 ```bash
-pbgopy history
-pbgopy history --json
-pbgopy paste --id <entry-id> >foo.png
-pbgopy history delete <entry-id>
-pbgopy history clear
+$ pbgopy history
+ID                                AGE  TYPE                       SIZE   LATEST  PREVIEW
+fcd0bc9afd9586c4544c377024d4e3b1  4s   text/plain; charset=utf-8  6B     *       "world"
+f9db4d7b8befb5d8b86b39e58b695126  9m   image/jpeg                 1.6MB          JPEG image 3144x4192
+
+$ pbgopy paste --id f9db4d7b8befb5d8b86b39e58b695126 >foo.jpg
 ```
 
 The default history limit is `1`, which preserves the existing latest-only behavior. Give `--history-limit 0` for unlimited in-memory history.
