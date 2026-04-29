@@ -51,7 +51,5 @@ linters-settings:
     min-occurrences: 2
   goimports:
     local-prefixes: github.com/nakabonne/pbgopy
-  maligned:
-    suggest-new: true
   misspell:
     locale: US
