@@ -1,8 +1,10 @@
+version: 2
 before:
   hooks:
     - go mod tidy
 builds:
-- main: .
+- id: pbgopy
+  main: .
   binary: pbgopy
   goos:
     - freebsd
@@ -21,22 +23,30 @@ builds:
   goarm:
     - 6
     - 7
+  ignore:
+    - goos: windows
+      goarch: arm
   env:
     - CGO_ENABLED=0
   ldflags: -s -w -X github.com/nakabonne/pbgopy/commands.version={{.Version}} -X github.com/nakabonne/pbgopy/commands.commit={{.ShortCommit}} -X github.com/nakabonne/pbgopy/commands.date={{.Date}}
 
 archives:
-- replacements:
-    386: 32-bit
+- name_template: >-
+    {{ .ProjectName }}_
+    {{- .Version }}_
+    {{- .Os }}_
+    {{- if eq .Arch "386" }}32-bit
+    {{- else }}{{ .Arch }}{{ end }}
+    {{- with .Arm }}v{{ . }}{{ end }}
 
 checksum:
   name_template: 'checksums.txt'
 
 snapshot:
-  name_template: "{{ .Tag }}-next"
+  version_template: "{{ .Version }}-next"
 
 brews:
-  - tap:
+  - repository:
       owner: nakabonne
       name: homebrew-pbgopy
     homepage: "https://github.com/nakabonne/pbgopy"
@@ -51,11 +61,13 @@ nfpms:
       - rpm
       - deb
 
-dockers:
+dockers_v2:
   - dockerfile: Dockerfile
-    binaries:
+    ids:
       - pbgopy
-    image_templates:
-      - "nakabonne/pbgopy:latest"
-      - "nakabonne/pbgopy:{{ .Tag }}"
-      - "nakabonne/pbgopy:v{{ .Major }}.{{ .Minor }}"
+    images:
+      - "nakabonne/pbgopy"
+    tags:
+      - "latest"
+      - "{{ .Tag }}"
+      - "v{{ .Major }}.{{ .Minor }}"
