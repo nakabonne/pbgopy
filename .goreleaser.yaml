@@ -71,3 +71,4 @@ dockers_v2:
       - "latest"
       - "{{ .Tag }}"
       - "v{{ .Major }}.{{ .Minor }}"
+    sbom: false
