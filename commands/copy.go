@@ -84,7 +84,8 @@ func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 	}
 
 	// Start encryption.
-	data, err = r.encrypt(data)
+	var encrypted bool
+	data, encrypted, err = r.encrypt(data)
 	if err != nil {
 		return err
 	}
@@ -96,6 +97,9 @@ func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 	req, err := http.NewRequest(http.MethodPut, address, bytes.NewBuffer(data))
 	if err != nil {
 		return fmt.Errorf("failed to make request: %w", err)
+	}
+	if encrypted {
+		req.Header.Set(historyEncryptedHeader, "true")
 	}
 	addBasicAuthHeader(req, r.basicAuth)
 	res, err := client.Do(req)
@@ -111,29 +115,30 @@ func (r *copyRunner) run(_ *cobra.Command, _ []string) error {
 }
 
 // encrypts with the user-specified way. It directly gives back plaintext if any key doesn't exists.
-func (r *copyRunner) encrypt(plaintext []byte) ([]byte, error) {
+func (r *copyRunner) encrypt(plaintext []byte) ([]byte, bool, error) {
 	if (r.password != "" || r.symmetricKeyFile != "") && (r.publicKeyFile != "" || r.gpgUserID != "") {
-		return nil, fmt.Errorf("only one of the symmetric-key or public-key can be used for encryption")
+		return nil, false, fmt.Errorf("only one of the symmetric-key or public-key can be used for encryption")
 	}
 
 	// Perform hybrid encryption with a public-key if it exists.
 	if r.publicKeyFile != "" || r.gpgUserID != "" {
-		return r.encryptWithPubKey(plaintext)
+		data, err := r.encryptWithPubKey(plaintext)
+		return data, true, err
 	}
 
 	// Encrypt with a symmetric-key if key exists.
 	key, err := getSymmetricKey(r.password, r.symmetricKeyFile)
 	if errors.Is(err, errNotfound) {
-		return plaintext, nil
+		return plaintext, false, nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to get key: %w", err)
+		return nil, false, fmt.Errorf("failed to get key: %w", err)
 	}
 	encrypted, err := pbcrypto.Encrypt(key, plaintext)
 	if err != nil {
-		return nil, fmt.Errorf("failed to encrypt the plaintext: %w", err)
+		return nil, false, fmt.Errorf("failed to encrypt the plaintext: %w", err)
 	}
-	return encrypted, nil
+	return encrypted, true, nil
 }
 
 // NOTE: pbgopy provides two way to specify the public key. Specifying path directly or specifying via GPG.

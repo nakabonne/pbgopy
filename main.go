@@ -39,6 +39,7 @@ func main() {
 	a.addCommands(
 		commands.NewCopyCommand(a.stdout, a.stderr),
 		commands.NewPasteCommand(a.stdout, a.stderr),
+		commands.NewHistoryCommand(a.stdout, a.stderr),
 		commands.NewServeCommand(a.stdout, a.stderr),
 		commands.NewVersionCommand(a.stderr),
 	)

@@ -8,7 +8,9 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
+	"strings"
 
 	pbcrypto "github.com/nakabonne/pbgopy/crypto"
 	"github.com/nakabonne/pbgopy/datasize"
@@ -35,6 +37,23 @@ func addBasicAuthHeader(req *http.Request, basicAuth string) {
 		return
 	}
 	req.Header.Add("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(basicAuth)))
+}
+
+func historyEntryURL(address, id string) string {
+	return strings.TrimRight(address, "/") + historyPath + "/" + url.PathEscape(id)
+}
+
+func historyURL(address string) string {
+	return strings.TrimRight(address, "/") + historyPath
+}
+
+func failedRequestError(res *http.Response) error {
+	body, _ := ioutil.ReadAll(io.LimitReader(res.Body, 4096))
+	msg := strings.TrimSpace(string(body))
+	if msg == "" {
+		return fmt.Errorf("failed request: Status %s", res.Status)
+	}
+	return fmt.Errorf("failed request: Status %s: %s", res.Status, msg)
 }
 
 // readNoMoreThan reads at most, max bytes from reader.
