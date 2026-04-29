@@ -206,7 +206,7 @@ func formatHistorySize(size int) string {
 	value := float64(size)
 	unit := 0
 	for value >= 1024 && unit < len(units)-1 {
-		value = value / 1024
+		value /= 1024
 		unit++
 	}
 	if unit == 0 {

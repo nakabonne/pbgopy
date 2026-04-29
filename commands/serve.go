@@ -124,7 +124,7 @@ func (r *serveRunner) handle(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case http.MethodGet:
 		if item, ok := r.history.Latest(); ok {
-			w.Write(item.body)
+			_, _ = w.Write(item.body)
 			return
 		}
 		if r.history.EverAdded() {
@@ -204,7 +204,7 @@ func (r *serveRunner) handleHistoryEntry(w http.ResponseWriter, req *http.Reques
 		if item.MIME != "" {
 			w.Header().Set("Content-Type", item.MIME)
 		}
-		w.Write(item.body)
+		_, _ = w.Write(item.body)
 	case http.MethodDelete:
 		if !r.history.Delete(id) {
 			http.Error(w, "The history entry not found", http.StatusNotFound)
