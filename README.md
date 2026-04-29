@@ -76,6 +76,26 @@ export PBGOPY_SERVER=http://host.xz:9090
 pbgopy paste >foo.png
 ```
 
+## History of copies
+
+To keep previous copies, start the server with a larger history limit:
+
+```bash
+pbgopy serve --history-limit 20
+```
+
+Each successful `copy` creates a new history entry and `paste` still returns the latest entry by default. You can list entries without printing full clipboard contents, paste a specific entry, or delete history:
+
+```bash
+$ pbgopy history
+ID                                AGE  TYPE                       SIZE   LATEST  PREVIEW
+fcd0bc9afd9586c4544c377024d4e3b1  4s   text/plain; charset=utf-8  6B     *       "world"
+f9db4d7b8befb5d8b86b39e58b695126  9m   image/jpeg                 1.6MB          JPEG image 3144x4192
+
+$ pbgopy paste --id f9db4d7b8befb5d8b86b39e58b695126 >foo.jpg
+```
+
+The default history limit is `1`, which preserves the existing latest-only behavior. Give `--history-limit 0` for unlimited in-memory history.
 
 ## End-to-end encryption
 `pbgopy` comes with a built-in ability to encrypt/decrypt with a variety of keys.
@@ -131,6 +151,7 @@ There are a couple of ways to specify a user ID. Visit [here](https://www.gnupg.
 
 ## TTL
 If you don't want more data to be cached on the server than necessary, use the `--ttl` flag to set TTL for the cache.
+TTL applies to each history entry, and expired entries are not listed or pasteable.
 Give `0s` for disabling it. Default is `24h`.
 
 ```bash
@@ -197,18 +218,47 @@ Usage:
 Examples:
   export PBGOPY_SERVER=http://host.xz:9090
   pbgopy paste >hello.txt
+  pbgopy paste --id <entry-id> >hello.txt
 
 Flags:
   -a, --basic-auth string                  Basic authentication, username:password
       --gpg-path string                    Path to gpg executable (default "gpg")
   -u, --gpg-user-id string                 GPG user id associated with private-key to be used for decryption
   -h, --help                               help for paste
+      --id string                          History entry id to paste
       --max-size string                    Max data size with unit (default "500mb")
   -p, --password string                    Password to derive the symmetric-key to be used for decryption
   -K, --private-key-file string            Path to an RSA private-key file to be used for decryption; Must be in PEM or DER format
       --private-key-password-file string   Path to password file to decrypt the encrypted private key
   -k, --symmetric-key-file string          Path to symmetric-key file to be used for decryption
       --timeout duration                   Time limit for requests (default 5s)
+```
+
+#### History
+```
+pbgopy history -h
+List clipboard history
+
+Usage:
+  pbgopy history [flags]
+  pbgopy history [command]
+
+Available Commands:
+  clear       Delete all history entries
+  delete      Delete a history entry
+
+Examples:
+  export PBGOPY_SERVER=http://host.xz:9090
+  pbgopy history
+  pbgopy history --json
+  pbgopy history delete <entry-id>
+  pbgopy history clear
+
+Flags:
+  -a, --basic-auth string   Basic authentication, username:password
+  -h, --help                help for history
+      --json                Output history metadata as JSON
+      --timeout duration    Time limit for requests (default 5s)
 ```
 
 #### Serve
@@ -220,13 +270,14 @@ Usage:
   pbgopy serve [flags]
 
 Examples:
-pbgopy serve --port=9090 --ttl=10m
+pbgopy serve --port=9090 --ttl=10m --history-limit=20
 
 Flags:
-  -a, --basic-auth string   Basic authentication, username:password
-  -h, --help                help for serve
-  -p, --port int            The port the server listens on (default 9090)
-      --ttl duration        The time that the contents is stored. Give 0s for disabling TTL (default 24h0m0s)
+  -a, --basic-auth string     Basic authentication, username:password
+  -h, --help                  help for serve
+      --history-limit int     Number of clipboard entries to retain. Give 0 for unlimited history (default 1)
+  -p, --port int              The port the server listens on (default 9090)
+      --ttl duration          The time that the contents is stored. Give 0s for disabling TTL (default 24h0m0s)
 ```
 
 ## Inspired By

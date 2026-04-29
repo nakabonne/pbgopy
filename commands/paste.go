@@ -27,9 +27,11 @@ type pasteRunner struct {
 	gpgPath                string
 	basicAuth              string
 	maxBufSize             string
+	id                     string
 
 	stdout io.Writer
 	stderr io.Writer
+	client *http.Client
 }
 
 func NewPasteCommand(stdout, stderr io.Writer) *cobra.Command {
@@ -41,7 +43,8 @@ func NewPasteCommand(stdout, stderr io.Writer) *cobra.Command {
 		Use:   "paste",
 		Short: "Paste to stdout",
 		Example: `  export PBGOPY_SERVER=http://host.xz:9090
-  pbgopy paste >hello.txt`,
+  pbgopy paste >hello.txt
+  pbgopy paste --id <entry-id> >hello.txt`,
 		RunE: r.run,
 	}
 	cmd.Flags().DurationVar(&r.timeout, "timeout", 5*time.Second, "Time limit for requests")
@@ -53,6 +56,7 @@ func NewPasteCommand(stdout, stderr io.Writer) *cobra.Command {
 	cmd.Flags().StringVar(&r.privateKeyPasswordFile, "private-key-password-file", "", "Path to password file to decrypt the encrypted private key")
 	cmd.Flags().StringVarP(&r.basicAuth, "basic-auth", "a", "", "Basic authentication, username:password")
 	cmd.Flags().StringVar(&r.maxBufSize, "max-size", "500mb", "Max data size with unit")
+	cmd.Flags().StringVar(&r.id, "id", "", "History entry id to paste")
 	return cmd
 }
 
@@ -61,12 +65,14 @@ func (r *pasteRunner) run(_ *cobra.Command, _ []string) error {
 	if address == "" {
 		return fmt.Errorf("put the pbgopy server's address into %s environment variable", pbgopyServerEnv)
 	}
-	client := &http.Client{
-		Timeout: r.timeout,
-	}
+	client := r.httpClient()
 
 	// Start reading data.
-	req, err := http.NewRequest(http.MethodGet, address, nil)
+	reqURL := address
+	if r.id != "" {
+		reqURL = historyEntryURL(address, r.id)
+	}
+	req, err := http.NewRequest(http.MethodGet, reqURL, nil)
 	if err != nil {
 		return fmt.Errorf("failed to make request: %w", err)
 	}
@@ -77,7 +83,7 @@ func (r *pasteRunner) run(_ *cobra.Command, _ []string) error {
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed request: Status %s", res.Status)
+		return failedRequestError(res)
 	}
 	sizeInBytes, err := datasizeToBytes(r.maxBufSize)
 	if err != nil {
@@ -94,8 +100,19 @@ func (r *pasteRunner) run(_ *cobra.Command, _ []string) error {
 		return err
 	}
 
-	fmt.Fprint(r.stdout, string(data))
+	if _, err := r.stdout.Write(data); err != nil {
+		return fmt.Errorf("failed to write to stdout: %w", err)
+	}
 	return nil
+}
+
+func (r *pasteRunner) httpClient() *http.Client {
+	if r.client != nil {
+		return r.client
+	}
+	return &http.Client{
+		Timeout: r.timeout,
+	}
 }
 
 // decrypts with the user-specified way. It directly gives back the given data if any key doesn't exists.
